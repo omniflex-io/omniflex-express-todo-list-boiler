@@ -4,7 +4,7 @@
 import { auth } from '@/middlewares/auth';
 import { ExposedRouter } from '@/servers';
 
-import { TDiscussion, TMessage } from './models';
+import { TDiscussion } from './models';
 import { discussions, items, messages } from './todo.repo';
 import { validateItemAccess, validateDiscussionAccess } from './middlewares';
 
@@ -23,32 +23,40 @@ class DiscussionController extends BaseEntitiesController<TDiscussion> {
 
   async tryGetOrCreate() {
     return this.tryAction(async () => {
-      const { itemId } = this.req.params;
-      let discussion = await discussions.findOne({ itemId });
+      const { item } = this.res.locals.required;
 
-      if (!discussion) {
-        discussion = await discussions.create({ itemId });
+      const discussion = await this.repository.findOne({ itemId: item.id });
+      if (discussion) {
+        return this.respondOne(discussion);
       }
 
-      return discussion;
+      return this.tryCreate({ itemId: item.id });
     });
   }
 
   async tryGetMessages() {
     return this.tryAction(async () => {
       const { id } = this.req.params;
-      const discussion = await discussions.findOne({ id });
-      if (!discussion) return [];
+      const discussion = await this.repository.findOne({ id });
+      if (!discussion) {
+        return this.respondMany([]);
+      }
 
       const item = await items.findOne({ id: discussion.itemId });
-      if (!item) return [];
+      if (!item) {
+        return this.respondMany([]);
+      }
 
-      return messages.find({ discussionId: id });
+      const messageList = await messages.find({ discussionId: id });
+      return this.respondMany(messageList);
     });
   }
 }
 
-const byItemId = RequiredDbEntries.byPathId(items, 'item');
+const byItemId = RequiredDbEntries.firstMatch(items, req => ({
+  id: req.params.itemId,
+  listId: req.params.listId,
+}), 'item');
 
 const router = ExposedRouter('/v1/todo-lists');
 
