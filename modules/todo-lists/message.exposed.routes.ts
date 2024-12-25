@@ -24,30 +24,37 @@ class MessageController extends BaseEntitiesController<TMessage> {
   static create = getControllerCreator(MessageController);
 
   tryCreate() {
-    const { discussionId } = this.req.params;
-    return super.tryCreate({
-      discussionId,
-      authorId: this.user.id,
+    return this.tryAction(async () => {
+      const { discussion } = this.res.locals.required;
+      return super.tryCreate({
+        discussionId: discussion.id,
+        senderId: this.user.id,
+      });
     });
   }
 
   tryListPaginated() {
-    const { discussionId } = this.req.params;
-    return super.tryListPaginated({ discussionId });
+    return this.tryAction(async () => {
+      const { discussion } = this.res.locals.required;
+      return super.tryListPaginated({ discussionId: discussion.id });
+    });
   }
 }
+
+const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion');
 
 const router = ExposedRouter('/v1/todo-lists');
 
 router
-  .post('/discussions/:discussionId/messages',
+  .post('/discussions/:id/messages',
     // #swagger.summary = 'Add a message to discussion'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['discussionId'] = { description: 'UUID of the discussion' }
+    // #swagger.parameters['id'] = { description: 'UUID of the discussion' }
     // #swagger.jsonBody = required|components/schemas/appModule/toDoLists/createMessage
 
     tryValidateBody(createMessageSchema),
     auth.requireExposed,
+    byDiscussionId,
     validateDiscussionAccess,
     MessageController.create(controller => controller.tryCreate()));
 
