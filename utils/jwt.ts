@@ -24,7 +24,7 @@ export class JwtProvider {
     await this._loadKeys();
 
     return jwt.sign(payload, this._privateKey!, {
-      expiresIn: expiresInMs,
+      expiresIn: Math.floor(expiresInMs / 1000),
       algorithm: config.jwt.algorithm,
       issuer: config.jwt.issuer || undefined,
     });
