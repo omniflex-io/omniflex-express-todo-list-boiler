@@ -85,6 +85,36 @@ export const validateListAccess = [
 ];
 ```
 
+### Nested Resource Validation
+
+```typescript
+// For resources that require validating a chain of parent resources
+export const validateDiscussionAccess = [
+  // 1. Get the discussion
+  RequiredDbEntries.byPathId(discussions, 'discussion'),
+
+  // 2. Get the parent item
+  RequiredDbEntries.firstMatch(
+    items,
+    async (req, res) => {
+      const discussion = res.locals.required.discussion;
+      return { id: discussion.itemId };
+    },
+    'item'
+  ),
+
+  // 3. Validate list access
+  RequiredDbEntries.firstMatch(
+    invitations,
+    async (req, res) => {
+      const item = res.locals.required.item;
+      return getInvitationQuery(item.listId, res);
+    },
+    true
+  ),
+];
+```
+
 ## Best Practices
 
 1. Always use array of middlewares for complex validations
@@ -92,4 +122,6 @@ export const validateListAccess = [
 3. Keep permission query logic in reusable functions
 4. Use consistent naming for stored entities in `res.locals.required`
 5. Break down complex validations into smaller, focused middleware functions
-6. Leverage the infrastructure's error handling mechanisms 
+6. Leverage the infrastructure's error handling mechanisms
+7. For nested resources, validate the entire chain of parent resources
+8. Store intermediate results in res.locals.required for reuse 

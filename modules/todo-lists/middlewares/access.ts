@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { RequiredDbEntries } from '@omniflex/infra-express';
 
-import { lists, invitations } from '../todo.repo';
+import { lists, invitations, items, discussions } from '../todo.repo';
 
 const getInvitationQuery = (listId: string, res: Response) => ({
   listId,
@@ -24,5 +24,25 @@ export const validateItemAccess = [
     invitations,
     (req, res) => getInvitationQuery(req.params.listId, res),
     true,
+  ),
+];
+
+export const validateDiscussionAccess = [
+  RequiredDbEntries.byPathId(discussions, 'discussion'),
+  RequiredDbEntries.firstMatch(
+    items,
+    async (req, res) => {
+      const discussion = res.locals.required.discussion;
+      return { id: discussion.itemId };
+    },
+    'item'
+  ),
+  RequiredDbEntries.firstMatch(
+    invitations,
+    async (req, res) => {
+      const item = res.locals.required.item;
+      return getInvitationQuery(item.listId, res);
+    },
+    true
   ),
 ]; 

@@ -6,7 +6,7 @@ import { ExposedRouter } from '@/servers';
 
 import { TDiscussion, TMessage } from './models';
 import { discussions, items, messages } from './todo.repo';
-import { validateItemAccess } from './middlewares';
+import { validateItemAccess, validateDiscussionAccess } from './middlewares';
 
 import {
   RequiredDbEntries,
@@ -48,8 +48,6 @@ class DiscussionController extends BaseEntitiesController<TDiscussion> {
 
 const byItemId = RequiredDbEntries.byPathId(items, 'item');
 
-const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion');
-
 const router = ExposedRouter('/v1/todo-lists');
 
 router
@@ -69,8 +67,7 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the discussion' }
 
     auth.requireExposed,
-    validateItemAccess,
-    byDiscussionId,
+    validateDiscussionAccess,
     DiscussionController.create(controller => controller.tryGetMessages()));
 
 export default router; 

@@ -6,7 +6,7 @@ import { ExposedRouter } from '@/servers';
 import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 
 import { TItem } from './models';
-import { items, lists } from './todo.repo';
+import { items } from './todo.repo';
 import { validateItemAccess } from './middlewares';
 import {
   createItemSchema,
@@ -14,7 +14,6 @@ import {
 } from './http.schemas';
 
 import {
-  RequiredDbEntries,
   getControllerCreator,
   BaseEntitiesController,
 } from '@omniflex/infra-express';
@@ -27,16 +26,21 @@ class ItemController extends BaseEntitiesController<TItem> {
   static create = getControllerCreator(ItemController);
 
   tryCreate() {
-    const { listId } = this.req.params;
-    return super.tryCreate({
-      listId,
-      isCompleted: false,
+    return this.tryAction(async () => {
+      const { list } = this.res.locals.required;
+
+      return super.tryCreate({
+        listId: list.id,
+        isCompleted: false,
+      });
     });
   }
 
   tryListPaginated() {
-    const { listId } = this.req.params;
-    return super.tryListPaginated({ listId });
+    return this.tryAction(async () => {
+      const { list } = this.res.locals.required;
+      return super.tryListPaginated({ listId: list.id });
+    });
   }
 
   tryUpdateContent() {
@@ -58,21 +62,7 @@ class ItemController extends BaseEntitiesController<TItem> {
       completedBy: undefined,
     });
   }
-
-  tryGetOne() {
-    return this.tryAction(() => this.respondRequired('item'));
-  }
 }
-
-const byListId = RequiredDbEntries.byId(lists, req => req.params.listId, true);
-
-const byItemIdOfList = [
-  byListId,
-  RequiredDbEntries.firstMatch(items, req => ({
-    id: req.params.id,
-    listId: req.params.listId,
-  }), 'item'),
-];
 
 const router = ExposedRouter('/v1/todo-lists');
 
@@ -84,7 +74,6 @@ router
 
     auth.requireExposed,
     validateItemAccess,
-    byListId,
     ItemController.create(controller => controller.tryListPaginated()))
 
   .get('/:listId/items/:id',
@@ -95,7 +84,6 @@ router
 
     auth.requireExposed,
     validateItemAccess,
-    byItemIdOfList,
     ItemController.create(controller => controller.tryGetOne()))
 
   .post('/:listId/items',
@@ -107,7 +95,6 @@ router
     tryValidateBody(createItemSchema),
     auth.requireExposed,
     validateItemAccess,
-    byListId,
     ItemController.create(controller => controller.tryCreate()))
 
   .patch('/:listId/items/:id',
@@ -120,7 +107,6 @@ router
     tryValidateBody(updateItemSchema),
     auth.requireExposed,
     validateItemAccess,
-    byItemIdOfList,
     ItemController.create(controller => controller.tryUpdateContent()))
 
   .post('/:listId/items/:id/complete',
@@ -131,7 +117,6 @@ router
 
     auth.requireExposed,
     validateItemAccess,
-    byItemIdOfList,
     ItemController.create(controller => controller.tryComplete()))
 
   .post('/:listId/items/:id/uncomplete',
@@ -142,7 +127,6 @@ router
 
     auth.requireExposed,
     validateItemAccess,
-    byItemIdOfList,
     ItemController.create(controller => controller.tryUncomplete()));
 
 export default router;

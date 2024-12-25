@@ -101,7 +101,7 @@ router
     auth.requireExposed,
     ListController.create(controller => controller.tryCreate()))
 
-  .post('/:id/archive',
+  .patch('/:id/archive',
     // #swagger.summary = 'Archive a todo list'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['id'] = { description: 'UUID of the todo list' }

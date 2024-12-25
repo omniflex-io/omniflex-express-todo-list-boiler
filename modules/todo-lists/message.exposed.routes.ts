@@ -8,7 +8,7 @@ import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 import { TMessage } from './models';
 import { messages, discussions } from './todo.repo';
 import { createMessageSchema } from './http.schemas';
-import { validateItemAccess } from './middlewares';
+import { validateDiscussionAccess } from './middlewares';
 
 import {
   RequiredDbEntries,
@@ -27,7 +27,7 @@ class MessageController extends BaseEntitiesController<TMessage> {
     const { discussionId } = this.req.params;
     return super.tryCreate({
       discussionId,
-      senderId: this.user.id,
+      authorId: this.user.id,
     });
   }
 
@@ -36,8 +36,6 @@ class MessageController extends BaseEntitiesController<TMessage> {
     return super.tryListPaginated({ discussionId });
   }
 }
-
-const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion');
 
 const router = ExposedRouter('/v1/todo-lists');
 
@@ -50,7 +48,7 @@ router
 
     tryValidateBody(createMessageSchema),
     auth.requireExposed,
-    byDiscussionId,
+    validateDiscussionAccess,
     MessageController.create(controller => controller.tryCreate()));
 
 export default router; 
