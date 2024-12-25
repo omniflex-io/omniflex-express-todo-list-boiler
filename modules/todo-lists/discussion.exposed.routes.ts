@@ -22,14 +22,16 @@ class DiscussionController extends BaseEntitiesController<TDiscussion> {
   static create = getControllerCreator(DiscussionController);
 
   async tryGetOrCreate() {
-    const { itemId } = this.req.params;
-    let discussion = await discussions.findOne({ itemId });
+    return this.tryAction(async () => {
+      const { itemId } = this.req.params;
+      let discussion = await discussions.findOne({ itemId });
 
-    if (!discussion) {
-      discussion = await discussions.create({ itemId });
-    }
+      if (!discussion) {
+        discussion = await discussions.create({ itemId });
+      }
 
-    return discussion;
+      return discussion;
+    });
   }
 
   async tryGetMessages() {

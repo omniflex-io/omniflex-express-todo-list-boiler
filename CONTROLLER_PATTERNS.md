@@ -73,10 +73,69 @@ async tryCreate() {
 }
 ```
 
+## Error Handling with tryAction
+
+The base controller provides a `tryAction` method for consistent error handling:
+
+1. When to use `tryAction`:
+   - When implementing custom logic before or after calling super methods
+   - When directly using response methods like `respondOne`, `respondMany`, or `respondRequired`
+   - When performing database operations or other async operations
+   - When accessing request data (`req.params`, `req.body`, `req.query`)
+   - When accessing response locals (`res.locals`)
+
+2. When NOT to use `tryAction`:
+   - When only calling super methods (e.g., `super.tryCreate`, `super.tryUpdate`)
+   - These methods are already protected by the base controller
+   - When only using `this.user.id` (it's already validated by auth middleware)
+
+### Example: Request Data Access Needs Protection
+
+```typescript
+tryCreate() {
+  return this.tryAction(async () => {
+    const { listId } = this.req.params;
+    const { inviteeId } = this.req.body;
+    return super.tryCreate({
+      listId,
+      inviterId: this.user.id,
+      inviteeId,
+      status: 'pending',
+    });
+  });
+}
+```
+
+### Example: Response Locals Access Needs Protection
+
+```typescript
+tryCreate() {
+  return this.tryAction(async () => {
+    const { list } = this.res.locals.required;
+    return super.tryCreate({
+      listId: list.id,
+      isCompleted: false,
+    });
+  });
+}
+```
+
+### Example: Super Method Only (No Protection Needed)
+
+```typescript
+tryUpdateStatus() {
+  return super.tryUpdate();
+}
+```
+
 ## Best Practices
 
 1. Use `respondRequired` when working with RequiredDbEntries middleware
 2. Implement post-creation operations using the respondOne option
 3. Maintain consistent response formatting across all endpoints
 4. Leverage the base controller's error handling mechanisms
-5. Keep controller methods focused and single-purpose 
+5. Keep controller methods focused and single-purpose
+6. Only wrap custom logic with `tryAction`
+7. Trust the base controller's protection for super methods
+8. Always protect request data access with `tryAction`
+9. Always protect response locals access with `tryAction` 

@@ -23,19 +23,24 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
   static create = getControllerCreator(InvitationController);
 
   tryCreate() {
-    const { listId } = this.req.params;
-    const { inviteeId } = this.req.body;
-    return super.tryCreate({
-      listId,
-      inviterId: this.user.id,
-      inviteeId,
-      status: 'pending',
+    return this.tryAction(async () => {
+      const { listId } = this.req.params;
+      const { inviteeId } = this.req.body;
+
+      return super.tryCreate({
+        listId,
+        inviterId: this.user.id,
+        inviteeId,
+        status: 'pending',
+      });
     });
   }
 
   tryListByList() {
-    const { listId } = this.req.params;
-    return super.tryListPaginated({ listId });
+    return this.tryAction(async () => {
+      const { listId } = this.req.params;
+      return super.tryListPaginated({ listId });
+    });
   }
 
   tryListMyInvitations() {
@@ -62,14 +67,6 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 }
 
 const byListId = RequiredDbEntries.byId(lists, req => req.params.listId, true);
-
-const byInvitationIdOfList = [
-  byListId,
-  RequiredDbEntries.firstMatch(invitations, req => ({
-    id: req.params.id,
-    listId: req.params.listId,
-  }), 'invitation'),
-];
 
 const byInvitationId = RequiredDbEntries.byPathId(invitations, 'invitation');
 
@@ -128,4 +125,4 @@ router
     tryValidateBody(updateInvitationSchema),
     auth.requireExposed,
     byInvitationId,
-    InvitationController.create(controller => controller.tryUpdateStatus())); 
+    InvitationController.create(controller => controller.tryUpdateStatus()));

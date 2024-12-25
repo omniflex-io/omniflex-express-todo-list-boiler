@@ -43,17 +43,36 @@ class ListController extends BaseEntitiesController<TList> {
     );
   }
 
-  tryListPaginated() {
-    return super.tryListPaginated({
-      ownerId: this.user.id,
-      isArchived: false,
+  async tryListPaginated() {
+    return this.tryAction(async () => {
+      const invitedLists = await invitations.find({
+        inviteeId: this.user.id,
+        status: 'accepted',
+      });
+
+      const invitedListIds = invitedLists.map(invite => invite.listId);
+
+      return super.tryListPaginated({
+        isArchived: false,
+        id: invitedListIds.length > 0 ? { $in: invitedListIds } : undefined,
+      });
     });
   }
 
-  tryListArchived() {
-    return super.tryListPaginated({
-      ownerId: this.user.id,
-      isArchived: true,
+  async tryListArchived() {
+    return this.tryAction(async () => {
+      const invitedLists = await invitations.find({
+        inviteeId: this.user.id,
+        status: 'accepted',
+      });
+
+      const invitedListIds = invitedLists.map(invite => invite.listId);
+
+      return super.tryListPaginated({
+        id: invitedListIds.length > 0 ? { $in: invitedListIds } : undefined,
+        ownerId: this.user.id,
+        isArchived: true,
+      });
     });
   }
 
