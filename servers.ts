@@ -1,4 +1,5 @@
 import { auth } from '@/middlewares/auth';
+import { skipSwaggerStaticLogger } from '@/middlewares/swagger-logger';
 import { AutoServer } from '@omniflex/infra-express';
 
 export const servers = [
@@ -12,18 +13,18 @@ export const [
   StaffRouter,
   DeveloperRouter,
 ] = servers.map(({ type, port }) => {
+  const beforeMiddlewares = [auth.optional];
+
+  if (type === 'developer') {
+    beforeMiddlewares.unshift(skipSwaggerStaticLogger);
+  }
+
   AutoServer.addServer({
     type,
     port,
     options: {
       middlewares: {
-        before: [
-          // -- we use optional to every route, in reality,
-          // -- the frontend will send the token in the header for most cases
-          // -- regardless of the route requirements, with the optional auth,
-          // -- we could decode the user from the token if the token is present
-          auth.optional,
-        ],
+        before: beforeMiddlewares,
       },
     },
   });
