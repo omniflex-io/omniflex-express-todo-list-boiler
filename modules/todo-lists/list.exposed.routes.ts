@@ -11,7 +11,6 @@ import { createListSchema } from './http.schemas';
 import { validateListAccess } from './middlewares';
 
 import {
-  RequiredDbEntries,
   getControllerCreator,
   BaseEntitiesController,
 } from '@omniflex/infra-express';
@@ -24,7 +23,7 @@ class ListController extends BaseEntitiesController<TList> {
   static create = getControllerCreator(ListController);
 
   async tryCreate() {
-    await super.tryCreate(
+    return super.tryCreate(
       {
         ownerId: this.user.id,
         isArchived: false,
@@ -91,7 +90,6 @@ router
 
     auth.requireExposed,
     validateListAccess,
-    RequiredDbEntries.byPathId(lists, 'list'),
     ListController.create(controller => controller.tryGetOne()))
 
   .post('/',
@@ -110,7 +108,6 @@ router
 
     auth.requireExposed,
     validateListAccess,
-    RequiredDbEntries.byPathId(lists, 'list'),
     ListController.create(controller => controller.tryArchive()));
 
 export default router;

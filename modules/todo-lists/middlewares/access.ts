@@ -1,50 +1,28 @@
-import { Request, Response, NextFunction } from 'express';
-import { invitations } from '../todo.repo';
+import { Response } from 'express';
+import { RequiredDbEntries } from '@omniflex/infra-express';
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-  };
-}
+import { lists, invitations } from '../todo.repo';
 
-export const validateListAccess = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  const { listId } = req.params;
-  const userId = req.user?.id;
+const getInvitationQuery = (listId: string, res: Response) => ({
+  listId,
+  status: 'accepted',
+  inviteeId: res.locals.user.id,
+});
 
-  if (!userId) {
-    res.status(401).json({
-      error: 'Unauthorized',
-      message: 'User not authenticated',
-    });
-    return;
-  }
+export const validateListAccess = [
+  RequiredDbEntries.byPathId(lists, 'list'),
+  RequiredDbEntries.firstMatch(
+    invitations,
+    (req, res) => getInvitationQuery(req.params.id, res),
+    true,
+  ),
+];
 
-  const invitation = await invitations.findOne({
-    listId,
-    inviteeId: userId,
-    status: 'accepted',
-  });
-
-  if (!invitation) {
-    res.status(403).json({
-      error: 'Forbidden',
-      message: 'User does not have access to this list',
-    });
-    return;
-  }
-
-  next();
-};
-
-export const validateItemAccess = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> => {
-  const { listId } = req.params;
-  await validateListAccess(req, res, next);
-}; 
+export const validateItemAccess = [
+  RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' }),
+  RequiredDbEntries.firstMatch(
+    invitations,
+    (req, res) => getInvitationQuery(req.params.listId, res),
+    true,
+  ),
+]; 
