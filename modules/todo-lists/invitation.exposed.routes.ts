@@ -7,7 +7,7 @@ import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 
 import { TInvitation } from './models';
 import { invitations, lists } from './todo.repo';
-import { createInvitationSchema, updateInvitationSchema } from './http.schemas';
+import { createInvitationSchema } from './http.schemas';
 
 import {
   RequiredDbEntries,
@@ -57,8 +57,22 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
     });
   }
 
-  tryUpdateStatus() {
-    return super.tryUpdate();
+  tryAcceptInvitation() {
+    return super.tryUpdate(
+      { status: 'accepted' },
+      {
+        respondOne: entity => this.respondOne(entity),
+      },
+    );
+  }
+
+  tryRejectInvitation() {
+    return super.tryUpdate(
+      { status: 'rejected' },
+      {
+        respondOne: entity => this.respondOne(entity),
+      },
+    );
   }
 
   tryGetOne() {
@@ -73,14 +87,14 @@ const byInvitationId = RequiredDbEntries.byPathId(invitations, 'invitation');
 const router = ExposedRouter('/v1/todo-lists');
 
 router
-  .get('/invitations',
+  .get('/invitations/my/pending',
     // #swagger.summary = 'List all pending invitations for the current user'
     // #swagger.security = [{"bearerAuth": []}]
 
     auth.requireExposed,
     InvitationController.create(controller => controller.tryListMyInvitations()))
 
-  .get('/invited',
+  .get('/invitations/my/accepted',
     // #swagger.summary = 'List all lists where the current user is invited and accepted'
     // #swagger.security = [{"bearerAuth": []}]
 
@@ -116,13 +130,20 @@ router
     byListId,
     InvitationController.create(controller => controller.tryCreate()))
 
-  .patch('/invitations/:id',
-    // #swagger.summary = 'Update invitation status'
+  .post('/invitations/:id/accept',
+    // #swagger.summary = 'Accept an invitation'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
-    // #swagger.jsonBody = required|components/schemas/appModule/toDoLists/updateInvitation
 
-    tryValidateBody(updateInvitationSchema),
     auth.requireExposed,
     byInvitationId,
-    InvitationController.create(controller => controller.tryUpdateStatus()));
+    InvitationController.create(controller => controller.tryAcceptInvitation()))
+
+  .post('/invitations/:id/reject',
+    // #swagger.summary = 'Reject an invitation'
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
+
+    auth.requireExposed,
+    byInvitationId,
+    InvitationController.create(controller => controller.tryRejectInvitation()));
