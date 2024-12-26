@@ -33,6 +33,159 @@ RequiredDbEntries.firstMatch(
    - `countOnly: true` optimizes permission checks
    - No unnecessary data fetching
 
+## Middleware Composition Pattern
+
+When building validation chains, follow these composition patterns:
+
+1. **Internal Middleware Components**
+   ```typescript
+   // Single-purpose, reusable middleware functions
+   const validateInviteeAccess = RequiredDbEntries.firstMatch(
+     invitations,
+     (req, res) => ({
+       id: req.params.id,
+       inviteeId: res.locals.user.id,
+     }),
+     true,
+   );
+
+   const validateListOwnership = RequiredDbEntries.firstMatch(
+     lists,
+     (req, res) => ({
+       id: req.params.listId,
+       ownerId: res.locals.user.id,
+     }),
+     true,
+   );
+   ```
+
+2. **Exported Validation Chains**
+   ```typescript
+   // Compose internal components into complete validation chains
+   export const validateInvitationAcceptance = [
+     RequiredDbEntries.byPathId(invitations, 'invitation'),
+     validateInviteeAccess,
+   ];
+
+   export const validateListAccess = [
+     RequiredDbEntries.byPathId(lists, 'list'),
+     validateListOwnership,
+   ];
+   ```
+
+### Why This Pattern?
+
+1. **Component Reusability**
+   - Internal middleware components are single functions
+   - Can be composed into multiple validation chains
+   - Easier to maintain and update
+
+2. **Clear Intent**
+   - Exported arrays clearly represent validation chains
+   - Internal functions clearly represent reusable components
+   - Makes the code more self-documenting
+
+3. **Type Safety**
+   - Single middleware functions are easier to type
+   - Avoids nested array type issues
+   - Better TypeScript integration
+
+## Validation Middleware Pattern
+
+When implementing validation logic, prefer middleware over controller methods:
+
+1. **Move Validation Logic to Middleware**
+   ```typescript
+   // INCORRECT: Validation in controller
+   tryAcceptInvitation() {
+     return this.tryAction(async () => {
+       const invitation = await invitations.findOne({ id });
+       if (!invitation) throw errors.notFound();
+       if (invitation.inviteeId !== this.user.id) throw errors.forbidden();
+       return super.tryUpdate({ status: 'accepted' });
+     });
+   }
+
+   // CORRECT: Validation in middleware
+   const validateInvitationAcceptance = [
+     RequiredDbEntries.byPathId(invitations, 'invitation'),
+     validateInviteeAccess,
+   ];
+
+   // Simple controller method
+   tryAcceptInvitation() {
+     return super.tryUpdate({ status: 'accepted' });
+   }
+   ```
+
+2. **Reusable Validation Logic**
+   ```typescript
+   // Shared validation logic
+   const validateInviteeAccess = RequiredDbEntries.firstMatch(
+     invitations,
+     (req, res) => ({
+       id: req.params.id,
+       inviteeId: res.locals.user.id,
+     }),
+     true,
+   );
+
+   // Reuse in multiple validations
+   export const validateInvitationAcceptance = [
+     RequiredDbEntries.byPathId(invitations, 'invitation'),
+     validateInviteeAccess,
+   ];
+
+   export const validateInvitationRejection = [
+     RequiredDbEntries.byPathId(invitations, 'invitation'),
+     validateInviteeAccess,
+   ];
+   ```
+
+3. **Complex Validation Chains**
+   ```typescript
+   // Internal component for list ownership check
+   const validateListOwnership = RequiredDbEntries.firstMatch(
+     lists,
+     async (req, res) => {
+       const invitation = res.locals.required.invitation;
+       return {
+         id: invitation.listId,
+         ownerId: res.locals.user.id,
+       };
+     },
+     true,
+   );
+
+   // Exported validation chain
+   export const validateInvitationApproval = [
+     RequiredDbEntries.byPathId(invitations, 'invitation'),
+     validateListOwnership,
+   ];
+   ```
+
+### Why Use Validation Middleware?
+
+1. **Separation of Concerns**
+   - Validation logic is separate from business logic
+   - Controllers remain focused on their core responsibilities
+   - Easier to test and maintain
+
+2. **Reusability**
+   - Validation logic can be shared across routes
+   - Common patterns can be abstracted into reusable functions
+   - Reduces code duplication
+
+3. **Early Validation**
+   - Validation happens before reaching the controller
+   - Failed requests are rejected early
+   - Improves performance and reduces server load
+
+4. **Consistent Error Handling**
+   - Uses the infrastructure's built-in error handling
+   - Standard error responses across the application
+   - Better user experience
+
 ## Implementation Patterns
 
 ### Resource Validation
@@ -117,11 +270,18 @@ export const validateDiscussionAccess = [
 
 ## Best Practices
 
-1. Always use array of middlewares for complex validations
-2. Use `countOnly: true` for permission checks when you don't need the data
-3. Keep permission query logic in reusable functions
-4. Use consistent naming for stored entities in `res.locals.required`
-5. Break down complex validations into smaller, focused middleware functions
-6. Leverage the infrastructure's error handling mechanisms
-7. For nested resources, validate the entire chain of parent resources
-8. Store intermediate results in res.locals.required for reuse 
+1. Always use array of middlewares for exported validation chains
+2. Keep internal middleware components as single functions
+3. Use `countOnly: true` for permission checks when you don't need the data
+4. Keep permission query logic in reusable functions
+5. Use consistent naming for stored entities in `res.locals.required`
+6. Break down complex validations into smaller, focused middleware functions
+7. Leverage the infrastructure's error handling mechanisms
+8. For nested resources, validate the entire chain of parent resources
+9. Store intermediate results in res.locals.required for reuse
+10. Move validation logic from controllers to middleware
+11. Keep controllers focused on business logic
+12. Make validation middleware reusable when possible
+13. Use early validation to improve performance
+14. Name internal components with clear, action-based names (e.g., validateInviteeAccess)
+15. Name exported chains with clear, feature-based names (e.g., validateInvitationAcceptance) 

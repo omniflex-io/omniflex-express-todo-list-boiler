@@ -4,11 +4,16 @@
 import { auth } from '@/middlewares/auth';
 import { ExposedRouter } from '@/servers';
 import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
-import { errors } from '@omniflex/core';
 
 import { TInvitation } from './models';
-import { invitations, invitationCodes, lists } from './todo.repo';
+import { invitations, lists } from './todo.repo';
 import { createInvitationSchema, createInvitationCodeSchema } from './http.schemas';
+import {
+  validateInvitationAcceptance,
+  validateInvitationRejection,
+  validateInvitationApproval,
+  validateInvitationCodeJoin,
+} from './middlewares/invitation';
 
 import {
   RequiredDbEntries,
@@ -55,16 +60,8 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 
   tryJoinByInvitationCode() {
     return this.tryAction(async () => {
-      const { listId, id } = this.req.params;
-      const code = await invitationCodes.findOne({ id, listId });
-
-      if (!code) {
-        throw errors.notFound('Invitation code not found');
-      }
-
-      if (code.expiresAt < new Date()) {
-        throw errors.badRequest('Invitation code has expired');
-      }
+      const { listId } = this.req.params;
+      const code = this.res.locals.required.invitationCode;
 
       return super.tryCreate({
         listId,
@@ -105,60 +102,15 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
   }
 
   tryAcceptInvitation() {
-    return this.tryAction(async () => {
-      const { id } = this.req.params;
-      const invitation = await invitations.findOne({ id });
-
-      if (!invitation) {
-        throw errors.notFound('Invitation not found');
-      }
-
-      if (invitation.inviteeId !== this.user.id) {
-        throw errors.forbidden();
-      }
-
-      return super.tryUpdate({ status: 'accepted' });
-    });
+    return super.tryUpdate({ status: 'accepted' });
   }
 
   tryRejectInvitation() {
-    return this.tryAction(async () => {
-      const { id } = this.req.params;
-      const invitation = await invitations.findOne({ id });
-
-      if (!invitation) {
-        throw errors.notFound('Invitation not found');
-      }
-
-      if (invitation.inviteeId !== this.user.id) {
-        throw errors.forbidden();
-      }
-
-      return super.tryUpdate({ status: 'rejected' });
-    });
+    return super.tryUpdate({ status: 'rejected' });
   }
 
   tryApproveInvitation() {
-    return this.tryAction(async () => {
-      const { id } = this.req.params;
-      const invitation = await invitations.findOne({ id });
-
-      if (!invitation) {
-        throw errors.notFound('Invitation not found');
-      }
-
-      const list = await lists.findOne({ id: invitation.listId });
-
-      if (!list) {
-        throw errors.notFound('List not found');
-      }
-
-      if (list.ownerId !== this.user.id) {
-        throw errors.forbidden();
-      }
-
-      return super.tryUpdate({ approved: true });
-    });
+    return super.tryUpdate({ approved: true });
   }
 
   tryGetOne() {
@@ -255,7 +207,7 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the invitation code' }
 
     auth.requireExposed,
-    byListId,
+    validateInvitationCodeJoin,
     InvitationController.create(controller => controller.tryJoinByInvitationCode()))
 
   .patch('/invitations/:id/accept',
@@ -264,7 +216,7 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
-    byInvitationId,
+    validateInvitationAcceptance,
     InvitationController.create(controller => controller.tryAcceptInvitation()))
 
   .patch('/invitations/:id/reject',
@@ -273,7 +225,7 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
-    byInvitationId,
+    validateInvitationRejection,
     InvitationController.create(controller => controller.tryRejectInvitation()))
 
   .patch('/invitations/:id/approve',
@@ -282,5 +234,5 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
-    byInvitationId,
+    validateInvitationApproval,
     InvitationController.create(controller => controller.tryApproveInvitation()));
