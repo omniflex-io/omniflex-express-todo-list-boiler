@@ -6,10 +6,13 @@ import { ExposedRouter } from '@/servers';
 
 import { TDiscussion } from './models';
 import { discussions, items, messages } from './todo.repo';
-import { validateItemAccess, validateDiscussionAccess } from './middlewares';
+import {
+  validateItemAccess,
+  validateDiscussionAccess,
+  byItemId,
+} from './middlewares';
 
 import {
-  RequiredDbEntries,
   getControllerCreator,
   BaseEntitiesController,
 } from '@omniflex/infra-express';
@@ -52,11 +55,6 @@ class DiscussionController extends BaseEntitiesController<TDiscussion> {
     });
   }
 }
-
-const byItemId = RequiredDbEntries.firstMatch(items, req => ({
-  id: req.params.itemId,
-  listId: req.params.listId,
-}), 'item');
 
 const router = ExposedRouter('/v1/todo-lists');
 

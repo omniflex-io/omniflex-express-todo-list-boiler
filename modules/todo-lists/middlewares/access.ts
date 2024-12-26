@@ -9,6 +9,28 @@ const getInvitationQuery = (listId: string, res: Response) => ({
   inviteeId: res.locals.user.id,
 });
 
+export const byListId = RequiredDbEntries.byId(lists, req => req.params.listId, true);
+
+export const byItemId = RequiredDbEntries.firstMatch(
+  items,
+  req => ({
+    id: req.params.itemId,
+    listId: req.params.listId,
+  }),
+  'item',
+);
+
+export const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion');
+
+export const validateListOwner = RequiredDbEntries.firstMatch(
+  lists,
+  (req, res) => ({
+    id: req.params.id || req.params.listId,
+    ownerId: res.locals.user.id,
+  }),
+  true,
+);
+
 export const validateListAccess = [
   RequiredDbEntries.byPathId(lists, 'list'),
   RequiredDbEntries.firstMatch(

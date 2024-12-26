@@ -8,7 +8,10 @@ import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 import { TList } from './models';
 import { lists, invitations } from './todo.repo';
 import { createListSchema } from './http.schemas';
-import { validateListAccess } from './middlewares';
+import {
+  validateListAccess,
+  validateListOwner,
+} from './middlewares';
 
 import {
   getControllerCreator,
@@ -121,12 +124,12 @@ router
     ListController.create(controller => controller.tryCreate()))
 
   .patch('/:id/archive',
-    // #swagger.summary = 'Archive a todo list'
+    // #swagger.summary = 'Archive a todo list (owner only)'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['id'] = { description: 'UUID of the todo list' }
 
     auth.requireExposed,
-    validateListAccess,
+    validateListOwner,
     ListController.create(controller => controller.tryArchive()));
 
 export default router;

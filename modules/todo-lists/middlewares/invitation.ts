@@ -11,6 +11,18 @@ const validateInviteeAccess = RequiredDbEntries.firstMatch(
   true,
 );
 
+const validateInvitationAccess = RequiredDbEntries.firstMatch(
+  invitations,
+  (req, res) => ({
+    id: req.params.id,
+    $or: [
+      { inviterId: res.locals.user.id },
+      { inviteeId: res.locals.user.id },
+    ],
+  }),
+  true,
+);
+
 const validateInvitationCode = RequiredDbEntries.firstMatch(
   invitationCodes,
   (req, res) => ({
@@ -49,4 +61,21 @@ export const validateInvitationApproval = [
 export const validateInvitationCodeJoin = [
   RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' }),
   validateInvitationCode,
+];
+
+export const validateListInvitationsAccess = [
+  RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' }),
+  RequiredDbEntries.firstMatch(
+    lists,
+    (req, res) => ({
+      id: req.params.listId,
+      ownerId: res.locals.user.id,
+    }),
+    true,
+  ),
+];
+
+export const validateInvitationViewAccess = [
+  RequiredDbEntries.byPathId(invitations, 'invitation'),
+  validateInvitationAccess,
 ];

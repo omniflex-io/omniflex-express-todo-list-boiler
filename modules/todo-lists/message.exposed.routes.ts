@@ -6,12 +6,14 @@ import { ExposedRouter } from '@/servers';
 import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 
 import { TMessage } from './models';
-import { messages, discussions } from './todo.repo';
+import { messages } from './todo.repo';
 import { createMessageSchema } from './http.schemas';
-import { validateDiscussionAccess } from './middlewares';
+import {
+  validateDiscussionAccess,
+  byDiscussionId,
+} from './middlewares';
 
 import {
-  RequiredDbEntries,
   getControllerCreator,
   BaseEntitiesController,
 } from '@omniflex/infra-express';
@@ -40,8 +42,6 @@ class MessageController extends BaseEntitiesController<TMessage> {
     });
   }
 }
-
-const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion');
 
 const router = ExposedRouter('/v1/todo-lists');
 

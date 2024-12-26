@@ -6,34 +6,40 @@
 - Owner creates a new todo list
 - System automatically adds owner as an accepted member
 - List starts in non-archived state
+- Only authenticated users can create lists
 
 ### View Lists
 - User can view their own lists
 - User can view lists they are invited to
 - Lists are paginated for better performance
+- List access requires valid membership or ownership
 
 ### Archive List
-- Owner can archive a list
+- Only owners can archive a list
 - Archived lists are not shown in the main view
-- Archived lists can be viewed separately
+- Archived lists can be viewed by members
+- Only owners can manage list settings
 
 ## Item Management
 
 ### Create Item
-- Members can add items to a list
+- Only list members can add items to a list
 - Items start in non-completed state
 - Items must have content
+- Item creation requires valid list membership
 
 ### Update Item
-- Members can update item content
+- Only list members can update item content
 - Original creation metadata is preserved
 - Update timestamp is recorded
+- Item updates require valid list membership
 
 ### Complete/Uncomplete Item
-- Members can mark items as complete
-- Members can unmark completed items
+- Only list members can mark items as complete
+- Only list members can unmark completed items
 - System records who completed the item and when
 - No automatic completion, users must explicitly mark items
+- Item status changes require valid list membership
 
 ## Discussion Management
 
@@ -41,11 +47,14 @@
 - Each item can have one discussion thread
 - Discussion is created automatically when needed
 - All list members can participate
+- Discussion creation requires valid list membership
 
 ### View Messages
-- Members can view all messages in a discussion
+- Only list members can view messages in a discussion
 - Messages are ordered chronologically
 - System shows who posted each message
+- Message access requires valid list membership
+- Message creation requires valid list membership
 
 ## Access Control
 
@@ -67,15 +76,25 @@
 ### Invitation Management
 - Users can view their pending invitations
 - Users can view their accepted invitations
-- List owners can view and manage invitations to their lists
+- List owners can view and manage all invitations to their lists
 - List owners can approve or reject pending invitations
-- Invitations require both user acceptance and owner approval
 - List owners can view and manage their invitation codes
+- Users can only view invitations where they are:
+  - The list owner
+  - The inviter
+  - The invitee
+- Non-owner list members cannot view other members' invitations
+- Invitations require both user acceptance and owner approval
 
 ### Access Validation
 - All operations require valid authentication
 - List operations require active membership
 - Item operations validate list access first
+- Owner operations validate list ownership
+- Invitation operations validate appropriate access rights:
+  - List-wide invitation operations require ownership
+  - Individual invitation operations require owner/inviter/invitee status
+- Discussion and message operations validate list membership
 
 ## Best Practices
 

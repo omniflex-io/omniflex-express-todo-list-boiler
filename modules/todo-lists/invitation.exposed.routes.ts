@@ -6,17 +6,22 @@ import { ExposedRouter } from '@/servers';
 import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 
 import { TInvitation } from './models';
-import { invitations, lists } from './todo.repo';
+import { invitations } from './todo.repo';
 import { createInvitationSchema, createInvitationCodeSchema } from './http.schemas';
 import {
   validateInvitationAcceptance,
   validateInvitationRejection,
   validateInvitationApproval,
   validateInvitationCodeJoin,
+  validateListInvitationsAccess,
+  validateInvitationViewAccess,
 } from './middlewares/invitation';
+import {
+  byListId,
+  validateListOwner,
+} from './middlewares/access';
 
 import {
-  RequiredDbEntries,
   getControllerCreator,
   BaseEntitiesController,
 } from '@omniflex/infra-express';
@@ -118,19 +123,6 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
   }
 }
 
-const byListId = RequiredDbEntries.byId(lists, req => req.params.listId, true);
-
-const byInvitationId = RequiredDbEntries.byPathId(invitations, 'invitation');
-
-const validateListOwner = RequiredDbEntries.firstMatch(
-  lists,
-  (req, res) => ({
-    id: req.params.listId,
-    ownerId: res.locals.user.id,
-  }),
-  true,
-);
-
 const router = ExposedRouter('/v1/todo-lists');
 
 router
@@ -149,31 +141,30 @@ router
     InvitationController.create(controller => controller.tryListMyInvitedLists()))
 
   .get('/:listId/invitations',
-    // #swagger.summary = 'List all invitations in a list'
+    // #swagger.summary = 'List all invitations in a list (owner only)'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
 
     auth.requireExposed,
-    byListId,
+    validateListInvitationsAccess,
     InvitationController.create(controller => controller.tryListByList()))
 
   .get('/:listId/invitations/codes',
-    // #swagger.summary = 'List all invitation codes for a list'
+    // #swagger.summary = 'List all invitation codes for a list (owner only)'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
 
     auth.requireExposed,
-    byListId,
-    validateListOwner,
+    validateListInvitationsAccess,
     InvitationController.create(controller => controller.tryListInvitationCodes()))
 
   .get('/invitations/:id',
-    // #swagger.summary = 'Get a specific invitation'
+    // #swagger.summary = 'Get a specific invitation (owner, inviter, or invitee only)'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
-    byInvitationId,
+    validateInvitationViewAccess,
     InvitationController.create(controller => controller.tryGetOne()))
 
   .post('/:listId/invitations',
