@@ -24,6 +24,53 @@ The base controller provides several methods for sending responses:
    This is particularly useful when working with RequiredDbEntries middleware
    which stores fetched entities in res.locals.required.
 
+## Repository Operations Pattern
+
+When performing repository operations, always use the base controller methods instead of directly calling repository methods:
+
+1. For creating entities:
+   ```typescript
+   // INCORRECT: Direct repository call
+   return repository.create({
+     field: value,
+   });
+
+   // CORRECT: Use base controller method
+   return super.tryCreate({
+     field: value,
+   });
+   ```
+
+2. For listing entities:
+   ```typescript
+   // INCORRECT: Direct repository call
+   return repository.find({ field: value });
+
+   // CORRECT: Use base controller method
+   return super.tryListPaginated({ field: value });
+   ```
+
+3. For updating entities:
+   ```typescript
+   // INCORRECT: Unnecessary respondOne option
+   return super.tryUpdate(
+     { status: 'accepted' },
+     {
+       respondOne: entity => this.respondOne(entity),
+     },
+   );
+
+   // CORRECT: Simple update
+   return super.tryUpdate({ status: 'accepted' });
+   ```
+
+The base controller methods ensure:
+- Consistent response formatting
+- Proper error handling
+- Pagination support where applicable
+- Audit logging (if configured)
+- Event emission (if configured)
+
 ## Post-Creation Operations Pattern
 
 When you need to perform additional operations after creating an entity, use the following pattern:
@@ -75,37 +122,21 @@ async tryCreate() {
 
 ## Post-Update Operations Pattern
 
-Similar to post-creation operations, when you need to perform additional operations after updating an entity, use the following pattern:
+The post-update operations pattern should ONLY be used when you need to perform additional operations after updating an entity. For simple updates, use the base controller's `tryUpdate` method directly:
 
 ```typescript
-tryUpdate<T extends Partial<TEntity> = Partial<TEntity>>(
-  additionalBody?: T,
-  { respondOne = this.respondOne }: {
-    respondOne?: (entity: TEntity) => void;
-  } = {},
-)
-```
+// Simple update - PREFERRED
+tryUpdateStatus() {
+  return super.tryUpdate({ status: 'active' });
+}
 
-### Why This Pattern?
-
-1. The `tryUpdate` method internally calls `respondOne` to send the response directly
-2. Any code after `super.tryUpdate()` won't execute as the response has already been sent
-3. To perform additional operations after update:
-   - Provide a custom `respondOne` function in the options
-   - Use this function to:
-     - Capture the updated entity
-     - Perform additional operations
-     - Call the controller's `respondOne` method when ready
-
-### Example Implementation
-
-```typescript
-tryAcceptInvitation() {
+// Complex update with additional operations - WHEN NEEDED
+tryComplexUpdate() {
   return super.tryUpdate(
-    { status: 'accepted' },
+    { status: 'completed' },
     {
-      respondOne: entity => {
-        // Perform any additional operations here
+      respondOne: async entity => {
+        await this.performAdditionalOperations(entity);
         this.respondOne(entity);
       },
     },
@@ -171,11 +202,13 @@ tryUpdateStatus() {
 ## Best Practices
 
 1. Use `respondRequired` when working with RequiredDbEntries middleware
-2. Implement post-creation operations using the respondOne option
-3. Maintain consistent response formatting across all endpoints
-4. Leverage the base controller's error handling mechanisms
-5. Keep controller methods focused and single-purpose
-6. Only wrap custom logic with `tryAction`
-7. Trust the base controller's protection for super methods
-8. Always protect request data access with `tryAction`
-9. Always protect response locals access with `tryAction` 
+2. Always use base controller methods instead of direct repository calls
+3. Only use post-operation patterns when additional operations are needed
+4. Keep update operations simple when no additional logic is required
+5. Maintain consistent response formatting across all endpoints
+6. Leverage the base controller's error handling mechanisms
+7. Keep controller methods focused and single-purpose
+8. Only wrap custom logic with `tryAction`
+9. Trust the base controller's protection for super methods
+10. Always protect request data access with `tryAction`
+11. Always protect response locals access with `tryAction` 

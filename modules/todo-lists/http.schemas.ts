@@ -21,6 +21,10 @@ export const createInvitationSchema = Joi.object<Pick<TInvitation, 'inviteeId'>>
   inviteeId: Joi.string().required(),
 });
 
+export const createInvitationCodeSchema = Joi.object({
+  autoApprove: Joi.boolean().required(),
+});
+
 export const createMessageSchema = Joi.object<Pick<TMessage, 'content'>>({
   content: Joi.string().required(),
 });
@@ -52,6 +56,12 @@ modulesSchemas.appModule = Object.assign(
         ...j2s(createInvitationSchema).swagger,
         example: {
           inviteeId: '123e4567-e89b-12d3-a456-426614174000',
+        },
+      },
+      createInvitationCode: {
+        ...j2s(createInvitationCodeSchema).swagger,
+        example: {
+          autoApprove: true,
         },
       },
       createMessage: {

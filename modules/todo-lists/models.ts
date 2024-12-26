@@ -28,7 +28,18 @@ export type TInvitation = {
   listId: string;
   inviterId: string;
   inviteeId: string;
+  approved: boolean;
   status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type TInvitationCode = {
+  id: string;
+  listId: string;
+  inviterId: string;
+  expiresAt: Date;
+  autoApprove: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -75,7 +86,18 @@ const invitationSchema = {
   listId: Types.requiredString(),
   inviterId: Types.requiredString(),
   inviteeId: Types.requiredString(),
+  approved: Types.requiredBoolean(),
   status: Types.requiredString(),
+  createdAt: Types.requiredDate(),
+  updatedAt: Types.requiredDate(),
+};
+
+const invitationCodeSchema = {
+  id: Types.id('UUID'),
+  listId: Types.requiredString(),
+  inviterId: Types.requiredString(),
+  expiresAt: Types.requiredDate(),
+  autoApprove: Types.requiredBoolean(),
   createdAt: Types.requiredDate(),
   updatedAt: Types.requiredDate(),
 };
@@ -103,6 +125,7 @@ const sequelize = Containers
 export const ListModel = sequelize.define('ToDoList', listSchema);
 export const ItemModel = sequelize.define('ToDoItem', itemSchema);
 export const InvitationModel = sequelize.define('ToDoInvitation', invitationSchema);
+export const InvitationCodeModel = sequelize.define('ToDoInvitationCode', invitationCodeSchema);
 export const DiscussionModel = sequelize.define('ToDoDiscussion', discussionSchema);
 export const MessageModel = sequelize.define('ToDoMessage', messageSchema);
 
@@ -111,6 +134,9 @@ ItemModel.belongsTo(ListModel, { foreignKey: 'listId' });
 
 ListModel.hasMany(InvitationModel, { foreignKey: 'listId' });
 InvitationModel.belongsTo(ListModel, { foreignKey: 'listId' });
+
+ListModel.hasMany(InvitationCodeModel, { foreignKey: 'listId' });
+InvitationCodeModel.belongsTo(ListModel, { foreignKey: 'listId' });
 
 ItemModel.hasOne(DiscussionModel, { foreignKey: 'itemId' });
 DiscussionModel.belongsTo(ItemModel, { foreignKey: 'itemId' });
