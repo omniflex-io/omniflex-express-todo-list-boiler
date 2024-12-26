@@ -37,7 +37,22 @@ interface TInvitation {
   listId: string;
   inviterId: string;
   inviteeId: string;
+  approved: boolean;
   status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date;
+}
+```
+
+### InvitationCode
+```typescript
+interface TInvitationCode {
+  id: string;
+  listId: string;
+  inviterId: string;
+  expiresAt: Date;
+  autoApprove: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
@@ -74,6 +89,15 @@ interface TMessage {
 - Follow standard REST conventions
 - Use appropriate HTTP methods
 - Include proper error responses
+- Invitation endpoints:
+  - GET /invitations/my/pending - List pending invitations
+  - GET /invitations/my/accepted - List accepted invitations
+  - PATCH /invitations/:id/accept - Accept an invitation
+  - PATCH /invitations/:id/reject - Reject an invitation
+  - PATCH /invitations/:id/approve - Approve an invitation (owner only)
+  - POST /:listId/invitations/codes - Generate invitation code (owner only)
+  - POST /:listId/invitations/codes/:id - Join using invitation code
+  - GET /:listId/invitations/codes - List invitation codes (owner only)
 
 ### Response Format
 ```typescript
@@ -100,13 +124,17 @@ interface TMessage {
 
 ### Access Control
 - Validate JWT for all endpoints
-- Check invitation status for list access
+- Check invitation status and approval for list access
 - Validate list access before item access
+- Validate list ownership for approval actions
+- Validate invitation code expiry and usage
 
 ### Data Validation
 - Required fields must be present
 - IDs must be valid UUIDs
 - Dates must be valid ISO strings
+- Invitation codes must be unique
+- Share links must have expiry dates
 
 ## Performance Considerations
 
@@ -114,11 +142,6 @@ interface TMessage {
 - List endpoints must support pagination
 - Default page size: 10 items
 - Maximum page size: 100 items
-
-### Caching
-- Cache user permissions where appropriate
-- Cache frequently accessed lists
-- Implement proper cache invalidation
 
 ## Error Handling
 
@@ -129,6 +152,7 @@ interface TMessage {
 - 401: Unauthorized
 - 403: Forbidden
 - 404: Not Found
+- 410: Gone (expired invitation code)
 - 500: Internal Server Error
 
 ### Error Messages
@@ -142,11 +166,15 @@ interface TMessage {
 - Test all business logic
 - Test validation rules
 - Test error handling
+- Test invitation code expiry
+- Test approval flows
 
 ### Integration Tests
 - Test API endpoints
 - Test authentication flow
 - Test permission checks
+- Test invitation code generation
+- Test invitation approval process
 
 ## Best Practices
 
@@ -154,4 +182,6 @@ interface TMessage {
 2. Use proper type annotations
 3. Implement proper error handling
 4. Document all public interfaces
-5. Write maintainable tests 
+5. Write maintainable tests
+6. Validate ownership before approval actions
+7. Maintain audit trail for approvals 

@@ -49,10 +49,28 @@
 
 ## Access Control
 
-### Invitations
-- Owner can invite other users
-- Invitations start in 'pending' state
-- Users must accept invitations to access lists
+### Direct Invitations
+- Owner can invite other users directly
+- Direct invitations are pre-approved by default
+- Users must explicitly accept or reject invitations
+- Accepted invitations grant list access
+- Rejected invitations are kept for audit purposes
+
+### Invitation Codes
+- Owner can generate invitation codes for their lists
+- Invitation codes are valid for 24 hours
+- Owner can choose between auto-approve or manual approval
+- Users can join lists using invitation codes
+- Manual approval requires list owner to approve the invitation
+- Auto-approve invitations grant immediate access upon joining
+
+### Invitation Management
+- Users can view their pending invitations
+- Users can view their accepted invitations
+- List owners can view and manage invitations to their lists
+- List owners can approve or reject pending invitations
+- Invitations require both user acceptance and owner approval
+- List owners can view and manage their invitation codes
 
 ### Access Validation
 - All operations require valid authentication

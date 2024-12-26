@@ -73,6 +73,46 @@ async tryCreate() {
 }
 ```
 
+## Post-Update Operations Pattern
+
+Similar to post-creation operations, when you need to perform additional operations after updating an entity, use the following pattern:
+
+```typescript
+tryUpdate<T extends Partial<TEntity> = Partial<TEntity>>(
+  additionalBody?: T,
+  { respondOne = this.respondOne }: {
+    respondOne?: (entity: TEntity) => void;
+  } = {},
+)
+```
+
+### Why This Pattern?
+
+1. The `tryUpdate` method internally calls `respondOne` to send the response directly
+2. Any code after `super.tryUpdate()` won't execute as the response has already been sent
+3. To perform additional operations after update:
+   - Provide a custom `respondOne` function in the options
+   - Use this function to:
+     - Capture the updated entity
+     - Perform additional operations
+     - Call the controller's `respondOne` method when ready
+
+### Example Implementation
+
+```typescript
+tryAcceptInvitation() {
+  return super.tryUpdate(
+    { status: 'accepted' },
+    {
+      respondOne: entity => {
+        // Perform any additional operations here
+        this.respondOne(entity);
+      },
+    },
+  );
+}
+```
+
 ## Error Handling with tryAction
 
 The base controller provides a `tryAction` method for consistent error handling:
