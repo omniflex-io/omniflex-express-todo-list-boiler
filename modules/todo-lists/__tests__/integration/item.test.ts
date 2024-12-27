@@ -84,6 +84,17 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data[0]).toHaveProperty('content', 'Test Item 1');
       expect(response.body.data[1]).toHaveProperty('content', 'Test Item 2');
     });
+
+    it('should not reveal items to non-members', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      await createTestItem(list.id, 'Test Item 1');
+      await createTestItem(list.id, 'Test Item 2');
+
+      await request(app)
+        .get(`/v1/todo-lists/${list.id}/items`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
+    });
   });
 
   describe('GET /v1/todo-lists/:listId/items/:id', () => {
@@ -103,6 +114,16 @@ describe('Item Management Integration Tests', () => {
         content: 'Test Item',
         isCompleted: false,
       });
+    });
+
+    it('should not reveal item existence to non-members', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const item = await createTestItem(list.id, 'Test Item');
+
+      await request(app)
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
     });
   });
 
@@ -124,6 +145,17 @@ describe('Item Management Integration Tests', () => {
         content: 'Updated Item',
       });
     });
+
+    it('should not allow non-members to update items', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const item = await createTestItem(list.id, 'Test Item');
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .send({ content: 'Updated Item' })
+        .expect(404);
+    });
   });
 
   describe('POST /v1/todo-lists/:listId/items/:id/complete', () => {
@@ -144,6 +176,16 @@ describe('Item Management Integration Tests', () => {
         completedBy: testUser.id,
       });
       expect(response.body.data).toHaveProperty('completedAt');
+    });
+
+    it('should not allow non-members to complete items', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const item = await createTestItem(list.id, 'Test Item');
+
+      await request(app)
+        .post(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
     });
   });
 
@@ -170,6 +212,21 @@ describe('Item Management Integration Tests', () => {
       });
       expect(response.body.data.completedAt).toBeFalsy();
       expect(response.body.data.completedBy).toBeFalsy();
+    });
+
+    it('should not allow non-members to uncomplete items', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const item = await createTestItem(list.id, 'Test Item');
+      await items.updateById(item.id, {
+        isCompleted: true,
+        completedAt: new Date(),
+        completedBy: otherUser.id,
+      });
+
+      await request(app)
+        .post(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
     });
   });
 });

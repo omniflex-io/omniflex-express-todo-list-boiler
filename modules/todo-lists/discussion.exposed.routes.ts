@@ -9,6 +9,7 @@ import { discussions, items, messages } from './todo.repo';
 import {
   byItemId,
   validateItemAccess,
+  validateDiscussionAccess,
 } from './middlewares';
 
 import {
@@ -74,6 +75,7 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the discussion' }
 
     auth.requireExposed,
+    validateDiscussionAccess,
     DiscussionController.create(controller => controller.tryGetMessages()));
 
 export default router;

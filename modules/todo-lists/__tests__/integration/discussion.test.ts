@@ -18,6 +18,7 @@ describe('Discussion Management Integration Tests', () => {
 
   let app: Express;
   let testUser: { id: string; token: string };
+  let otherUser: { id: string; token: string };
 
   beforeAll(async () => {
     if (!app) {
@@ -27,6 +28,7 @@ describe('Discussion Management Integration Tests', () => {
     }
 
     testUser = await createTestUser();
+    otherUser = await createTestUser();
     await sequelize.sync({ force: true });
   });
 
@@ -75,6 +77,17 @@ describe('Discussion Management Integration Tests', () => {
         .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
         .expect(401);
     });
+
+    it('should not reveal discussion existence to non-members', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const item = await createTestItem(list.id, 'Test Item');
+      await discussions.create({ itemId: item.id });
+
+      await request(app)
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
+    });
   });
 
   describe('GET /v1/todo-lists/discussions/:id/messages', () => {
@@ -106,14 +119,21 @@ describe('Discussion Management Integration Tests', () => {
       expect(response.body.data[1]).toHaveProperty('content', 'Test Message 2');
     });
 
-    it('should return empty array for non-existent discussion', async () => {
-      const response = await request(app)
-        .get('/v1/todo-lists/discussions/non-existent-id/messages')
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+    it('should not reveal messages to non-members', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const item = await createTestItem(list.id, 'Test Item');
+      const discussion = await discussions.create({ itemId: item.id });
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(0);
+      await messages.create({
+        discussionId: discussion.id,
+        senderId: otherUser.id,
+        content: 'Test Message',
+      });
+
+      await request(app)
+        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
     });
 
     it('should require authentication', async () => {
