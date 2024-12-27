@@ -40,10 +40,10 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 
       return super.tryCreate({
         listId,
-        inviterId: this.user.id,
         inviteeId,
         approved: true,
         status: 'pending',
+        inviterId: this.user.id,
       });
     });
   }
@@ -56,9 +56,9 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 
       return super.tryCreate({
         listId,
-        inviterId: this.user.id,
         expiresAt,
         autoApprove,
+        inviterId: this.user.id,
       });
     });
   }
@@ -70,10 +70,10 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 
       return super.tryCreate({
         listId,
-        inviterId: code.inviterId,
-        inviteeId: this.user.id,
-        approved: code.autoApprove,
         status: 'pending',
+        inviteeId: this.user.id,
+        inviterId: code.inviterId,
+        approved: code.autoApprove,
       });
     });
   }
@@ -81,28 +81,30 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
   tryListByList() {
     return this.tryAction(async () => {
       const { listId } = this.req.params;
-      return super.tryListPaginated({ listId });
+
+      return super.tryList({ listId });
     });
   }
 
   tryListInvitationCodes() {
     return this.tryAction(async () => {
       const { listId } = this.req.params;
-      return super.tryListPaginated({ listId });
+
+      return super.tryList({ listId });
     });
   }
 
   tryListMyInvitations() {
-    return super.tryListPaginated({
-      inviteeId: this.user.id,
+    return super.tryList({
       status: 'pending',
+      inviteeId: this.user.id,
     });
   }
 
   tryListMyInvitedLists() {
-    return super.tryListPaginated({
-      inviteeId: this.user.id,
+    return super.tryList({
       status: 'accepted',
+      inviteeId: this.user.id,
     });
   }
 
