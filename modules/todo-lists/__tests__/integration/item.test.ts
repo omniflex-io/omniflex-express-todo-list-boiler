@@ -4,7 +4,7 @@ import { Server } from 'http';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
-import { lists, items } from '../../todo.repo';
+import { items } from '../../todo.repo';
 
 // Import route handlers
 import './../../item.exposed.routes';
@@ -38,7 +38,7 @@ describe('Item Management Integration Tests', () => {
       servers.map(server => new Promise<void>((resolve) => {
         server.closeAllConnections();
         server.close(() => resolve());
-      }))
+      })),
     );
     await sequelize.close();
   });
@@ -180,4 +180,4 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data.completedBy).toBeFalsy();
     });
   });
-}); 
+});

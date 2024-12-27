@@ -4,7 +4,7 @@ import { Server } from 'http';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
-import { lists, items, discussions, messages } from '../../todo.repo';
+import { discussions, messages } from '../../todo.repo';
 
 // Import route handlers
 import './../../discussion.exposed.routes';
@@ -39,7 +39,7 @@ describe('Discussion Management Integration Tests', () => {
       servers.map(server => new Promise<void>((resolve) => {
         server.closeAllConnections();
         server.close(() => resolve());
-      }))
+      })),
     );
     await sequelize.close();
   });
@@ -136,4 +136,4 @@ describe('Discussion Management Integration Tests', () => {
         .expect(401);
     });
   });
-}); 
+});

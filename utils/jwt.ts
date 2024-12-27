@@ -13,7 +13,7 @@ export class JwtProvider {
   get401Error(errorCode?: string) {
     return errors.unauthorized({
       errorCode,
-      error: 'JWT_PROVIDER'
+      error: 'JWT_PROVIDER',
     });
   }
 
@@ -46,7 +46,7 @@ export class JwtProvider {
           algorithms: [config.jwt.algorithm],
         },
       ) as Record<string, any>;
-    } catch (error) {
+    } catch {
       throw this.get401Error();
     }
   }

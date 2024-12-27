@@ -19,7 +19,7 @@ const initializeIdentity = async () => {
   const sequelize = await import('@omniflex/module-identity-sequelize-v6');
 
   sequelize.createRegisteredRepositories();
-}
+};
 
 (async () => {
   // -- connect to sqlite database
@@ -42,14 +42,17 @@ const initializeIdentity = async () => {
 
     await autoImport(path, filename =>
       filename.endsWith('.repo') || // -- repositories
-      filename.endsWith('.routes')  // -- routes
+      filename.endsWith('.routes'),  // -- routes
     );
   })();
 
-  sequelize && await sequelize.sync();
+  if (sequelize) {
+    await sequelize.sync();
+  }
 
-  !config.isTesting &&
+  if (!config.isTesting) {
     await swagger.initialize();  // -- generate docs and bind routes
+  }
 
   await AutoServer.start();
 })();

@@ -25,7 +25,7 @@ const generateSwagger = async () => {
         },
 
         servers: [
-          { url: `http://localhost:${port || "unknown"}` },
+          { url: `http://localhost:${port || 'unknown'}` },
         ],
 
         components: {
@@ -51,7 +51,7 @@ const generateSwagger = async () => {
         .flatMap(file => [`${file}.ts`, `${file}.js`]);
 
       await swaggerAutogen({ openapi: '3.0.0' })(outputFile, routes, doc);
-    })
+    }),
   );
 };
 
@@ -69,7 +69,7 @@ const swaggerRoutes = async () => {
 
           const imported = (await import(`${pathToFileURL(path)}`, {
             assert: {
-              type: "json",
+              type: 'json',
             },
           }));
 

@@ -81,7 +81,7 @@ router
   .post('/users',  // #swagger.summary = 'Register a new user'
     // #swagger.jsonBody = required|components/schemas/moduleIdentity/registerWithEmail
     validateRegisterWithEmail,
-    Controller.create(controller => controller.tryRegister())
+    Controller.create(controller => controller.tryRegister()),
   )
 
   .post('/access-tokens', // #swagger.summary = 'Login with email'

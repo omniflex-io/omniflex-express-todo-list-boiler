@@ -25,7 +25,7 @@ const validateInvitationAccess = RequiredDbEntries.firstMatch(
 
 const validateInvitationCode = RequiredDbEntries.firstMatch(
   invitationCodes,
-  (req, res) => ({
+  (req) => ({
     id: req.params.id,
     listId: req.params.listId,
     expiresAt: { $gt: new Date() },

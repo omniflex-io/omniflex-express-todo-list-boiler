@@ -43,7 +43,7 @@ class ListController extends BaseEntitiesController<TList> {
 
           this.respondOne(list);
         },
-      }
+      },
     );
   }
 
@@ -62,7 +62,7 @@ class ListController extends BaseEntitiesController<TList> {
             lists.find({
               isArchived: false,
               id: { $in: invites.map(invite => invite.listId) },
-            }) : []
+            }) : [],
         ),
       ]);
 
@@ -92,7 +92,7 @@ class ListController extends BaseEntitiesController<TList> {
             lists.find({
               isArchived: true,
               id: { $in: invites.map(invite => invite.listId) },
-            }) : []
+            }) : [],
         ),
       ]);
 

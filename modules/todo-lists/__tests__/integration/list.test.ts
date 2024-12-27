@@ -38,7 +38,7 @@ describe('List Management Integration Tests', () => {
       servers.map(server => new Promise<void>((resolve) => {
         server.closeAllConnections();
         server.close(() => resolve());
-      }))
+      })),
     );
     await sequelize.close();
   });
@@ -133,7 +133,7 @@ describe('List Management Integration Tests', () => {
         expect.arrayContaining([
           expect.objectContaining({ id: list1.id }),
           expect.objectContaining({ id: list2.id }),
-        ])
+        ]),
       );
     });
 

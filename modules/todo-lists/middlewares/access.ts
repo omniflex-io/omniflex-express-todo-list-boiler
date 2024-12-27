@@ -63,7 +63,7 @@ export const validateItemAccess = [
       if (!isOwner && !isInvited) {
         throw errors.notFound();
       }
-    }
+    },
   ),
 ];
 
@@ -75,7 +75,7 @@ export const validateDiscussionAccess = [
       const discussion = res.locals.required.discussion;
       return { id: discussion.itemId };
     },
-    'item'
+    'item',
   ),
   ExpressUtils.tryAction(
     async (req, res) => {
@@ -97,6 +97,6 @@ export const validateDiscussionAccess = [
       if (!isOwner && !isInvited) {
         throw errors.notFound();
       }
-    }
+    },
   ),
 ];

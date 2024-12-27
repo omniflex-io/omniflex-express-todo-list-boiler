@@ -4,7 +4,7 @@ import { Server } from 'http';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
-import { lists, invitations } from '../../todo.repo';
+import { invitations } from '../../todo.repo';
 
 // Import route handlers
 import './../../invitation.exposed.routes';
@@ -44,7 +44,7 @@ describe('Invitation Management Integration Tests', () => {
       servers.map(server => new Promise<void>((resolve) => {
         server.closeAllConnections();
         server.close(() => resolve());
-      }))
+      })),
     );
     await sequelize.close();
   });
@@ -182,4 +182,4 @@ describe('Invitation Management Integration Tests', () => {
         .expect(404);
     });
   });
-}); 
+});
