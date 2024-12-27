@@ -198,6 +198,15 @@ describe('Cross-Server Tests', () => {
    - Don't manually configure routes in tests
    - Don't mix route configurations
 
+5. Assertion Best Practices:
+   - Use `toBeTruthy()/toBeFalsy()` for boolean checks and null/undefined values
+   - Use `toBeFalsy()` instead of explicit `toBeNull()` or `toBeUndefined()` checks
+   - Use `toMatchObject()` for partial object matching
+   - Use `toHaveProperty()` for property existence checks
+   - Avoid exact equality checks unless absolutely necessary
+   - Keep assertions focused on business requirements
+   - Don't over-specify in assertions
+
 ## Module Name Mapper Configuration
 
 1. Base Jest Config (`jest.config.base.mjs`):
@@ -281,3 +290,32 @@ describe('Cross-Server Tests', () => {
      1. Check path priority in moduleNameMapper
      2. Verify <rootDir> resolution in each config
      3. Check for path conflicts between mappings
+
+## Error Response Testing
+
+1. Security-First Error Responses:
+   ```typescript
+   // When testing unauthorized access, expect 404 instead of 403
+   // This prevents information leakage about resource existence
+   it('should not reveal list existence to non-owners', async () => {
+     const otherList = await lists.create({
+       ownerId: otherUser.id,
+       name: 'Other User\'s List',
+     });
+
+     await request(app)
+       .patch(`/v1/todo-lists/${otherList.id}/archive`)
+       .set('Authorization', `Bearer ${testUser.token}`)
+       .expect(404);  // Not 403
+   });
+   ```
+
+2. Error Response Patterns:
+   - Use 404 for resource not found AND unauthorized access
+   - Use 401 for authentication failures
+   - Use 403 only when you want to explicitly confirm resource existence
+
+3. Testing Considerations:
+   - Test both positive and negative cases
+   - Verify error response codes match security requirements
+   - Document when 404 is used instead of 403 for security

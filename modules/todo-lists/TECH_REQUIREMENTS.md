@@ -7,7 +7,7 @@
 interface TList {
   id: string;
   ownerId: string;
-  title: string;
+  name: string;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;

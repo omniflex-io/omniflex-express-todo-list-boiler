@@ -19,6 +19,7 @@
 - Archived lists are not shown in the main view
 - Archived lists can be viewed by members
 - Only owners can manage list settings
+- Non-owners attempting to archive a list will receive a 404 response (not 403) to prevent information leakage about list existence
 
 ## Item Management
 
