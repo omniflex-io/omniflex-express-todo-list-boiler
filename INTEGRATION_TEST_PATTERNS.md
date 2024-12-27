@@ -197,3 +197,87 @@ describe('Cross-Server Tests', () => {
    - Import route files before `AutoServer.start()`
    - Don't manually configure routes in tests
    - Don't mix route configurations
+
+## Module Name Mapper Configuration
+
+1. Base Jest Config (`jest.config.base.mjs`):
+   ```javascript
+   export default {
+     transform: {},
+     preset: 'ts-jest',
+     testEnvironment: 'node',
+     setupFilesAfterEnv: ['<rootDir>/../jest.setup.ts'],
+
+     moduleNameMapper: {
+       // Core module mapping
+       '^@omniflex/core$': '<rootDir>/core',
+       '^@omniflex/core/(.*)$': '<rootDir>/core/$1',
+
+       // Infrastructure modules mapping
+       '^@omniflex/infra-express/?(.*)$': '<rootDir>/infra/infra-express/$1',
+       '^@omniflex/infra-sqlite/?(.*)$': '<rootDir>/infra/infra-sqlite/$1',
+
+       // Feature modules mapping
+       '^@omniflex/module-identity-core/?(.*)$': '<rootDir>/modules/module-identity/core/$1',
+       '^@omniflex/module-identity-impl-express/?(.*)$': '<rootDir>/modules/module-identity/impl-express/$1',
+       // ... other module mappings
+     },
+
+     coveragePathIgnorePatterns: ['/node_modules/', '/dist/'],
+     modulePathIgnorePatterns: ['/node_modules/', '/dist/'],
+   };
+   ```
+   - Defines base TypeScript and Jest configuration
+   - Maps all @omniflex paths to monorepo structure
+   - Configures test environment and coverage
+
+2. App Jest Config (`apps/server/jest.config.mjs`):
+   ```javascript
+   import baseConfig from '../../jest.config.base.mjs';
+
+   const moduleNameMapper = Object.fromEntries(Object.entries(baseConfig.moduleNameMapper));
+
+   // Update @omniflex paths for monorepo
+   for (const key in moduleNameMapper) {
+     const value = moduleNameMapper[key];
+
+     if (key.startsWith('^@omniflex/')) {
+       moduleNameMapper[key] = value.replace('<rootDir>/', '<rootDir>/../../');
+     }
+   }
+
+   export default {
+     ...baseConfig,
+     setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+
+     moduleNameMapper: {
+       ...moduleNameMapper,
+       "^@/(.*)$": "<rootDir>/$1",  // Maps @/ to the app root
+     },
+   };
+   ```
+
+3. Configuration Flow:
+   - jest.config.base.mjs defines core mappings
+   - app's jest.config.mjs:
+     1. Inherits base mappings
+     2. Adjusts paths for monorepo structure
+     3. Adds app-specific mappings
+
+4. Path Resolution Examples:
+   ```typescript
+   // In a test file:
+   import { something } from '@/utils/something';     // -> apps/server/utils/something
+   import { core } from '@omniflex/core';            // -> <root>/core
+   import { helper } from '../helpers/something';     // -> relative to test file
+   ```
+
+5. Common Issues and Solutions:
+   - Module not found:
+     1. Check base config for @omniflex mappings
+     2. Check app config for path adjustments
+     3. Verify relative paths from test location
+   - Wrong module loaded:
+     1. Check path priority in moduleNameMapper
+     2. Verify <rootDir> resolution in each config
+     3. Check for path conflicts between mappings
