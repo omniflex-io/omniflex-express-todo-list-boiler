@@ -28,8 +28,8 @@ class ListController extends BaseEntitiesController<TList> {
   async tryCreate() {
     return super.tryCreate(
       {
-        ownerId: this.user.id,
         isArchived: false,
+        ownerId: this.user.id,
       },
       {
         respondOne: async (list) => {
@@ -38,6 +38,7 @@ class ListController extends BaseEntitiesController<TList> {
             inviterId: this.user.id,
             inviteeId: this.user.id,
             status: 'accepted',
+            approved: true,
           });
 
           this.respondOne(list);
@@ -46,36 +47,63 @@ class ListController extends BaseEntitiesController<TList> {
     );
   }
 
-  async tryListPaginated() {
+  async tryList() {
     return this.tryAction(async () => {
-      const invitedLists = await invitations.find({
-        inviteeId: this.user.id,
-        status: 'accepted',
+      const [ownedLists, invitedLists] = await Promise.all([
+        lists.find({
+          isArchived: false,
+          ownerId: this.user.id,
+        }),
+        invitations.find({
+          status: 'accepted',
+          inviteeId: this.user.id,
+        }).then(invites =>
+          invites.length > 0 ?
+            lists.find({
+              isArchived: false,
+              id: { $in: invites.map(invite => invite.listId) },
+            }) : []
+        ),
+      ]);
+
+      const uniqueListsMap = new Map();
+      [...ownedLists, ...invitedLists].forEach(list => {
+        if (!uniqueListsMap.has(list.id)) {
+          uniqueListsMap.set(list.id, list);
+        }
       });
 
-      const invitedListIds = invitedLists.map(invite => invite.listId);
-
-      return super.tryListPaginated({
-        isArchived: false,
-        id: invitedListIds.length > 0 ? { $in: invitedListIds } : undefined,
-      });
+      this.respondMany(Array.from(uniqueListsMap.values()));
     });
   }
 
   async tryListArchived() {
     return this.tryAction(async () => {
-      const invitedLists = await invitations.find({
-        inviteeId: this.user.id,
-        status: 'accepted',
+      const [ownedLists, invitedLists] = await Promise.all([
+        lists.find({
+          isArchived: true,
+          ownerId: this.user.id,
+        }),
+        invitations.find({
+          status: 'accepted',
+          inviteeId: this.user.id,
+        }).then(invites =>
+          invites.length > 0 ?
+            lists.find({
+              isArchived: true,
+              id: { $in: invites.map(invite => invite.listId) },
+            }) : []
+        ),
+      ]);
+
+      const uniqueListsMap = new Map();
+      [...ownedLists, ...invitedLists].forEach(list => {
+        if (!uniqueListsMap.has(list.id)) {
+          uniqueListsMap.set(list.id, list);
+        }
       });
 
-      const invitedListIds = invitedLists.map(invite => invite.listId);
-
-      return super.tryListPaginated({
-        id: invitedListIds.length > 0 ? { $in: invitedListIds } : undefined,
-        ownerId: this.user.id,
-        isArchived: true,
-      });
+      this.respondMany(Array.from(uniqueListsMap.values()));
     });
   }
 
@@ -91,42 +119,42 @@ class ListController extends BaseEntitiesController<TList> {
 const router = ExposedRouter('/v1/todo-lists');
 
 router
+  .post('/',
+    // #swagger.summary = 'Create a new list'
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.requestBody = { "$ref": "#/components/schemas/toDoLists/createList" }
+
+    auth.requireExposed,
+    tryValidateBody(createListSchema),
+    ListController.create(controller => controller.tryCreate()))
+
   .get('/',
-    // #swagger.summary = 'List all active todo lists'
+    // #swagger.summary = 'List all non-archived lists'
     // #swagger.security = [{"bearerAuth": []}]
 
     auth.requireExposed,
-    ListController.create(controller => controller.tryListPaginated()))
+    ListController.create(controller => controller.tryList()))
 
   .get('/archived',
-    // #swagger.summary = 'List all archived todo lists'
+    // #swagger.summary = 'List all archived lists'
     // #swagger.security = [{"bearerAuth": []}]
 
     auth.requireExposed,
     ListController.create(controller => controller.tryListArchived()))
 
   .get('/:id',
-    // #swagger.summary = 'Get a specific todo list'
+    // #swagger.summary = 'Get a list by ID'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the todo list' }
+    // #swagger.parameters['id'] = { description: 'UUID of the list' }
 
     auth.requireExposed,
     validateListAccess,
     ListController.create(controller => controller.tryGetOne()))
 
-  .post('/',
-    // #swagger.summary = 'Create a new todo list'
-    // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.jsonBody = required|components/schemas/appModule/toDoLists/createList
-
-    tryValidateBody(createListSchema),
-    auth.requireExposed,
-    ListController.create(controller => controller.tryCreate()))
-
   .patch('/:id/archive',
-    // #swagger.summary = 'Archive a todo list (owner only)'
+    // #swagger.summary = 'Archive a list'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the todo list' }
+    // #swagger.parameters['id'] = { description: 'UUID of the list' }
 
     auth.requireExposed,
     validateListOwner,

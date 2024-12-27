@@ -8,6 +8,7 @@ import { lists, invitations } from '../../todo.repo';
 
 // Import route handlers
 import './../../list.exposed.routes';
+import './../../invitation.exposed.routes';
 
 // Import test helpers
 import { createTestUser, resetTestData } from '../helpers/setup';
@@ -32,14 +33,21 @@ describe('List Management Integration Tests', () => {
     await sequelize.sync({ force: true });
   });
 
-  afterAll(() => {
-    for (const server of servers) {
-      server.closeAllConnections();
-      server.close();
-    }
+  afterAll(async () => {
+    await Promise.all(
+      servers.map(server => new Promise<void>((resolve) => {
+        server.closeAllConnections();
+        server.close(() => resolve());
+      }))
+    );
+    await sequelize.close();
   });
 
-  describe('POST /lists', () => {
+  afterEach(async () => {
+    await resetTestData();
+  });
+
+  describe('POST /v1/todo-lists', () => {
     it('should create a new list successfully', async () => {
       const listData = {
         name: 'New Test List',
@@ -59,7 +67,7 @@ describe('List Management Integration Tests', () => {
       });
 
       const invitationResponse = await request(app)
-        .get('/invitations/my/accepted')
+        .get('/v1/todo-lists/invitations/my/accepted')
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -78,23 +86,23 @@ describe('List Management Integration Tests', () => {
       };
 
       await request(app)
-        .post('/lists')
+        .post('/v1/todo-lists')
         .send(listData)
         .expect(401);
     });
   });
 
-  describe('GET /lists', () => {
+  describe('GET /v1/todo-lists', () => {
     it('should list user\'s lists', async () => {
       const list1 = await lists.create({
         ownerId: testUser.id,
-        title: 'List 1',
+        name: 'List 1',
         isArchived: false,
       });
 
       const list2 = await lists.create({
         ownerId: testUser.id,
-        title: 'List 2',
+        name: 'List 2',
         isArchived: false,
       });
 
@@ -103,6 +111,7 @@ describe('List Management Integration Tests', () => {
         inviterId: testUser.id,
         inviteeId: testUser.id,
         status: 'accepted',
+        approved: true,
       });
 
       await invitations.create({
@@ -110,10 +119,11 @@ describe('List Management Integration Tests', () => {
         inviterId: testUser.id,
         inviteeId: testUser.id,
         status: 'accepted',
+        approved: true,
       });
 
       const response = await request(app)
-        .get('/lists')
+        .get('/v1/todo-lists')
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -130,7 +140,7 @@ describe('List Management Integration Tests', () => {
     it('should not list archived lists', async () => {
       const archivedList = await lists.create({
         ownerId: testUser.id,
-        title: 'Archived List',
+        name: 'Archived List',
         isArchived: true,
       });
 
@@ -139,10 +149,11 @@ describe('List Management Integration Tests', () => {
         inviterId: testUser.id,
         inviteeId: testUser.id,
         status: 'accepted',
+        approved: true,
       });
 
       const response = await request(app)
-        .get('/lists')
+        .get('/v1/todo-lists')
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -151,11 +162,42 @@ describe('List Management Integration Tests', () => {
     });
   });
 
-  describe('GET /lists/archived', () => {
+  describe('GET /v1/todo-lists/:id', () => {
+    it('should get a specific list', async () => {
+      const list = await lists.create({
+        ownerId: testUser.id,
+        name: 'Test List',
+        isArchived: false,
+      });
+
+      await invitations.create({
+        listId: list.id,
+        inviterId: testUser.id,
+        inviteeId: testUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+
+      const response = await request(app)
+        .get(`/v1/todo-lists/${list.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toMatchObject({
+        id: list.id,
+        name: list.name,
+        ownerId: testUser.id,
+        isArchived: false,
+      });
+    });
+  });
+
+  describe('GET /v1/todo-lists/archived', () => {
     it('should list user\'s archived lists', async () => {
       const archivedList = await lists.create({
         ownerId: testUser.id,
-        title: 'Archived List',
+        name: 'Archived List',
         isArchived: true,
       });
 
@@ -164,10 +206,11 @@ describe('List Management Integration Tests', () => {
         inviterId: testUser.id,
         inviteeId: testUser.id,
         status: 'accepted',
+        approved: true,
       });
 
       const response = await request(app)
-        .get('/lists/archived')
+        .get('/v1/todo-lists/archived')
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -180,16 +223,16 @@ describe('List Management Integration Tests', () => {
     });
   });
 
-  describe('PATCH /lists/:id/archive', () => {
+  describe('PATCH /v1/todo-lists/:id/archive', () => {
     it('should archive a list', async () => {
       const testList = await lists.create({
         ownerId: testUser.id,
-        title: 'Test List',
+        name: 'Test List',
         isArchived: false,
       });
 
       const response = await request(app)
-        .patch(`/lists/${testList.id}/archive`)
+        .patch(`/v1/todo-lists/${testList.id}/archive`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -200,18 +243,18 @@ describe('List Management Integration Tests', () => {
       });
     });
 
-    it('should only allow owner to archive', async () => {
+    it('should not reveal list existence to non-owners', async () => {
       const otherUser = await createTestUser();
       const otherList = await lists.create({
         ownerId: otherUser.id,
-        title: 'Other User\'s List',
+        name: 'Other User\'s List',
         isArchived: false,
       });
 
       await request(app)
-        .patch(`/lists/${otherList.id}/archive`)
+        .patch(`/v1/todo-lists/${otherList.id}/archive`)
         .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(403);
+        .expect(404);
     });
   });
 });
