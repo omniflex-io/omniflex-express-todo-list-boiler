@@ -14,10 +14,10 @@ export const createTestUser = async () => {
   return { id: userId, token };
 };
 
-export const createTestList = async (ownerId: string, title: string) => {
+export const createTestList = async (ownerId: string, name: string) => {
   return lists.create({
     ownerId,
-    title,
+    name,
     isArchived: false,
   });
 };
