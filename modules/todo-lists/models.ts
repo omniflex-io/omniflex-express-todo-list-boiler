@@ -17,8 +17,8 @@ export type TItem = {
   listId: string;
   content: string;
   isCompleted: boolean;
-  completedAt?: Date;
-  completedBy?: string;
+  completedAt: Date | null;
+  completedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -122,12 +122,12 @@ const sequelize = Containers
   .appContainerAs<{ sequelize: Sequelize; }>()
   .resolve('sequelize');
 
-export const ListModel = sequelize.define('ToDoList', listSchema);
-export const ItemModel = sequelize.define('ToDoItem', itemSchema);
-export const InvitationModel = sequelize.define('ToDoInvitation', invitationSchema);
-export const InvitationCodeModel = sequelize.define('ToDoInvitationCode', invitationCodeSchema);
-export const DiscussionModel = sequelize.define('ToDoDiscussion', discussionSchema);
-export const MessageModel = sequelize.define('ToDoMessage', messageSchema);
+export const ListModel = sequelize.define('ToDoList', listSchema, { paranoid: true });
+export const ItemModel = sequelize.define('ToDoItem', itemSchema, { paranoid: true });
+export const InvitationModel = sequelize.define('ToDoInvitation', invitationSchema, { paranoid: true });
+export const InvitationCodeModel = sequelize.define('ToDoInvitationCode', invitationCodeSchema, { paranoid: true });
+export const DiscussionModel = sequelize.define('ToDoDiscussion', discussionSchema, { paranoid: true });
+export const MessageModel = sequelize.define('ToDoMessage', messageSchema, { paranoid: true });
 
 ListModel.hasMany(ItemModel, { foreignKey: 'listId' });
 ItemModel.belongsTo(ListModel, { foreignKey: 'listId' });
