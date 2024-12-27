@@ -1,6 +1,6 @@
 # Controller Patterns
 
-## BaseEntitiesController Response Methods
+## Response Methods
 
 The base controller provides several methods for sending responses:
 
@@ -18,8 +18,8 @@ The base controller provides several methods for sending responses:
 
 3. `respondRequired(key: string)`: Sends an entity from res.locals.required
    ```typescript
-   this.respondRequired('list');
-   // Response: { data: res.locals.required.list }
+   this.respondRequired('resource');
+   // Response: { data: res.locals.required.resource }
    ```
    This is particularly useful when working with RequiredDbEntries middleware
    which stores fetched entities in res.locals.required.
@@ -28,101 +28,84 @@ The base controller provides several methods for sending responses:
 
 When performing repository operations, always use the base controller methods instead of directly calling repository methods:
 
-1. For creating entities:
+1. **Create Operations**
    ```typescript
    // INCORRECT: Direct repository call
-   return repository.create({
-     field: value,
-   });
+   return repository.create(data);
 
    // CORRECT: Use base controller method
-   return super.tryCreate({
-     field: value,
-   });
+   return super.tryCreate(data);
    ```
 
-2. For listing entities:
+2. **List Operations**
    ```typescript
    // INCORRECT: Direct repository call
-   return repository.find({ field: value });
+   return repository.find(query);
 
    // CORRECT: Use base controller method
-   return super.tryListPaginated({ field: value });
+   return super.tryListPaginated(query);
    ```
 
-3. For updating entities:
+3. **Update Operations**
    ```typescript
-   // INCORRECT: Unnecessary respondOne option
-   return super.tryUpdate(
-     { status: 'accepted' },
-     {
-       respondOne: entity => this.respondOne(entity),
-     },
-   );
+   // INCORRECT: Direct repository call
+   return repository.update(id, data);
 
-   // CORRECT: Simple update
-   return super.tryUpdate({ status: 'accepted' });
+   // CORRECT: Use base controller method
+   return super.tryUpdate(data);
    ```
-
-The base controller methods ensure:
-- Consistent response formatting
-- Proper error handling
-- Pagination support where applicable
-- Audit logging (if configured)
-- Event emission (if configured)
-
-## Post-Creation Operations Pattern
-
-When you need to perform additional operations after creating an entity, use the following pattern:
-
-```typescript
-tryCreate<T extends Partial<TEntity> = Partial<TEntity>>(
-  additionalBody?: T,
-  { respondOne = this.respondOne }: {
-    respondOne?: (entity: TEntity) => void;
-  } = {},
-)
-```
 
 ### Why This Pattern?
 
-1. The `tryCreate` method internally calls `respondOne` to send the response directly
-2. Any code after `super.tryCreate()` won't execute as the response has already been sent
-3. To perform additional operations after creation:
-   - Provide a custom `respondOne` function in the options
-   - Use this function to:
-     - Capture the created entity
-     - Perform additional operations
-     - Call the controller's `respondOne` method when ready
+1. **Consistent Response Format**
+   - All responses follow the same structure
+   - Error handling is standardized
+   - Pagination is handled automatically
 
-### Example Implementation
+2. **Audit Trail**
+   - Operations are logged consistently
+   - Changes are tracked uniformly
+   - User context is maintained
+
+3. **Event Emission**
+   - Events are emitted automatically
+   - Subscribers are notified consistently
+   - Integration points are maintained
+
+## Post-Operation Patterns
+
+The base controller methods internally call `respondOne` to send the response directly.
+Any code after `super.tryCreate()` won't execute as the response has already been sent.
+To perform additional operations after creation or update, use the following patterns:
+
+### Post-Creation Operations
+
+When additional operations are needed after creating an entity:
 
 ```typescript
-async tryCreate() {
+tryCreate() {
   return super.tryCreate(
     {
       ownerId: this.user.id,
-      isArchived: false,
+      status: 'active',
     },
     {
-      respondOne: async (list) => {
-        await invitations.create({
-          listId: list.id,
-          inviterId: this.user.id,
-          inviteeId: this.user.id,
-          status: 'accepted',
-        });
+      respondOne: async (entity) => {
+        // Perform additional operations
+        await this.performAdditionalTasks(entity);
 
-        this.respondOne(list);
+        // Send the response
+        this.respondOne(entity);
       },
-    }
+    },
   );
 }
 ```
 
-## Post-Update Operations Pattern
+### Post-Update Operations
 
-The post-update operations pattern should ONLY be used when you need to perform additional operations after updating an entity. For simple updates, use the base controller's `tryUpdate` method directly:
+The post-update operations pattern should ONLY be used when you need to perform additional operations after updating an entity.
+For simple updates, use the base controller's `tryUpdate` method directly:
 
 ```typescript
 // Simple update - PREFERRED
@@ -136,7 +119,10 @@ tryComplexUpdate() {
     { status: 'completed' },
     {
       respondOne: async entity => {
-        await this.performAdditionalOperations(entity);
+        // Perform additional operations
+        await this.performAdditionalTasks(entity);
+
+        // Send the response
         this.respondOne(entity);
       },
     },
@@ -144,71 +130,163 @@ tryComplexUpdate() {
 }
 ```
 
-## Error Handling with tryAction
+### Why These Patterns?
 
-The base controller provides a `tryAction` method for consistent error handling:
+1. **Response Control**
+   - Custom response timing
+   - Additional data inclusion
+   - Error handling control
 
-1. When to use `tryAction`:
-   - When implementing custom logic before or after calling super methods
-   - When directly using response methods like `respondOne`, `respondMany`, or `respondRequired`
-   - When performing database operations or other async operations
-   - When accessing request data (`req.params`, `req.body`, `req.query`)
-   - When accessing response locals (`res.locals`)
+2. **Maintainability**
+   - Clear operation flow
+   - Easy to extend
+   - Simple to debug
 
-2. When NOT to use `tryAction`:
-   - When only calling super methods (e.g., `super.tryCreate`, `super.tryUpdate`)
-   - These methods are already protected by the base controller
-   - When only using `this.user.id` (it's already validated by auth middleware)
+## Error Handling Pattern
 
-### Example: Request Data Access Needs Protection
+The base controller provides a `tryAction` method for consistent error handling.
+This pattern ensures all errors are caught and handled uniformly across the application.
+
+### When to Use tryAction
+
+1. When implementing custom logic before or after calling super methods
+2. When directly using response methods like `respondOne`, `respondMany`, or `respondRequired`
+3. When performing database operations or other async operations
+4. When accessing request data (`req.params`, `req.body`, `req.query`)
+5. When accessing response locals (`res.locals`)
+
+Examples:
+
+1. **Custom Logic Operations**
+   ```typescript
+   tryCustomOperation() {
+     return this.tryAction(async () => {
+       const result = await this.performCustomLogic();
+       return this.respondOne(result);
+     });
+   }
+   ```
+
+2. **Request Data Access**
+   ```typescript
+   tryCreate() {
+     return this.tryAction(async () => {
+       const { parentId } = this.req.params;
+       const { name } = this.req.body;
+       return super.tryCreate({ parentId, name });
+     });
+   }
+   ```
+
+3. **Response Locals Access**
+   ```typescript
+   tryCreate() {
+     return this.tryAction(async () => {
+       const { parent } = this.res.locals.required;
+       return super.tryCreate({ parentId: parent.id });
+     });
+   }
+   ```
+
+### When NOT to Use tryAction
+
+1. When only calling super methods (e.g., `super.tryCreate`, `super.tryUpdate`)
+   ```typescript
+   // No tryAction needed
+   tryUpdateStatus() {
+     return super.tryUpdate({ status: 'active' });
+   }
+   ```
+
+2. When only using `this.user.id` (it's already validated by auth middleware)
+   ```typescript
+   // No tryAction needed - user.id is pre-validated
+   tryCreate() {
+     return super.tryCreate({ ownerId: this.user.id });
+   }
+   ```
+
+## Controller Inheritance Pattern
+
+When extending the base controller, follow these patterns to maintain consistency and leverage built-in functionality:
 
 ```typescript
-tryCreate() {
-  return this.tryAction(async () => {
-    const { listId } = this.req.params;
-    const { inviteeId } = this.req.body;
-    return super.tryCreate({
-      listId,
-      inviterId: this.user.id,
-      inviteeId,
-      status: 'pending',
+class ResourceController extends BaseEntitiesController {
+  // 1. Constructor with repository
+  constructor(req: Request, res: Response, next: NextFunction) {
+    super(req, res, next, repository);
+  }
+
+  // 2. Simple operations - direct super calls
+  tryUpdateStatus() {
+    return super.tryUpdate({ status: 'active' }); // -- use this. when no duplicated method in this class, opt for super.
+  }
+
+  // 3. Complex operations - with tryAction
+  tryComplexOperation() {
+    return this.tryAction(async () => {
+      // Complex logic here
     });
-  });
+  }
+
+  // 4. Custom response methods
+  async respondWithExtra(entity: any) {
+    const extra = await this.getExtraData(entity);
+    this.respondOne({ ...entity, ...extra });
+  }
 }
 ```
 
-### Example: Response Locals Access Needs Protection
+### Why This Pattern?
 
-```typescript
-tryCreate() {
-  return this.tryAction(async () => {
-    const { list } = this.res.locals.required;
-    return super.tryCreate({
-      listId: list.id,
-      isCompleted: false,
-    });
-  });
-}
-```
+1. **Consistent Base Functionality**
+   - All controllers share core features
+   - Common operations are standardized
+   - Reduces code duplication
 
-### Example: Super Method Only (No Protection Needed)
+2. **Extension Points**
+   - Easy to add custom methods
+   - Clear override patterns
+   - Flexible response handling
 
-```typescript
-tryUpdateStatus() {
-  return super.tryUpdate();
-}
-```
+3. **Type Safety**
+   - Repository typing is preserved
+   - Request/response typing is maintained
+   - Error handling is type-safe
 
 ## Best Practices
 
-1. Use `respondRequired` when working with RequiredDbEntries middleware
-2. Always use base controller methods instead of direct repository calls
-3. Only use post-operation patterns when additional operations are needed
-4. Keep update operations simple when no additional logic is required
-5. Maintain consistent response formatting across all endpoints
-6. Leverage the base controller's error handling mechanisms
-7. Keep controller methods focused and single-purpose
-8. Only wrap custom logic with `tryAction`
-9. Trust the base controller's protection for super methods
-10. Always protect request data access with `tryAction`
-11. Always protect response locals access with `tryAction` 
+1. **Response Methods**
+   - Use base controller response methods
+   - Maintain consistent response format
+   - Handle pagination properly
+
+2. **Repository Operations**
+   - Use base class's methods for CRUD operations
+   - Avoid direct repository calls
+   - Leverage built-in features
+
+3. **Post-Operations**
+   - Use respondOne option for additional tasks
+   - Keep operations atomic
+   - Handle errors properly
+
+4. **Error Handling**
+   - Use tryAction for custom logic
+   - Trust super methods' error handling
+   - Maintain security in errors
+
+5. **Controller Structure**
+   - Keep methods focused
+   - Use clear naming
+   - Follow inheritance patterns
+
+6. **Type Safety**
+   - Use proper type annotations
+   - Leverage TypeScript features
+   - Maintain type consistency
+
+7. **Testing**
+   - Test error cases
+   - Verify response format
+   - Check additional operations 
