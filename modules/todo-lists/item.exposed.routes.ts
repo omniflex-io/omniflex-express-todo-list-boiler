@@ -36,10 +36,10 @@ class ItemController extends BaseEntitiesController<TItem> {
     });
   }
 
-  tryListPaginated() {
+  tryList() {
     return this.tryAction(async () => {
       const { list } = this.res.locals.required;
-      return super.tryListPaginated({ listId: list.id });
+      return super.tryList({ listId: list.id });
     });
   }
 
@@ -58,8 +58,8 @@ class ItemController extends BaseEntitiesController<TItem> {
   tryUncomplete() {
     return super.tryUpdate({
       isCompleted: false,
-      completedAt: undefined,
-      completedBy: undefined,
+      completedAt: null,
+      completedBy: null,
     });
   }
 }
@@ -74,7 +74,7 @@ router
 
     auth.requireExposed,
     validateItemAccess,
-    ItemController.create(controller => controller.tryListPaginated()))
+    ItemController.create(controller => controller.tryList()))
 
   .get('/:listId/items/:id',
     // #swagger.summary = 'Get a specific todo item'
