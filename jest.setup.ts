@@ -14,9 +14,6 @@ Containers.asValues({
 jest.mock('@/config', () => ({
   env: 'test',
   isTesting: true,
-  ports: {
-    exposed: (() => Math.floor(Math.random() * 1000) + 3000)(),
-  },
 
   logging: {
     level: 'error',

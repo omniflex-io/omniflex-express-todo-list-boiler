@@ -352,7 +352,7 @@ The server configuration is managed through the `servers.ts` file:
 export const servers: Record<ServerType, TBaseServer> = {
   exposed: {
     type: 'exposed',
-    port: config.ports.exposed,
+    port: 3500,
     options: {
       middlewares: {
         before: [
@@ -363,7 +363,7 @@ export const servers: Record<ServerType, TBaseServer> = {
   },
   staff: {
     type: 'staff',
-    port: config.ports.staff,
+    port: 3600,
     options: {
       middlewares: {
         before: [
@@ -374,7 +374,7 @@ export const servers: Record<ServerType, TBaseServer> = {
   },
   developer: {
     type: 'developer',
-    port: config.ports.developer,
+    port: 3700,
     options: {
       middlewares: {
         before: [

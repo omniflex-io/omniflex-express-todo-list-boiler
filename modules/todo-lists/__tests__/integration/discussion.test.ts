@@ -1,6 +1,5 @@
 import request from 'supertest';
 import { Express } from 'express';
-import { Server } from 'http';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
@@ -18,16 +17,13 @@ describe('Discussion Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
 
   let app: Express;
-  let servers: Server[];
   let testUser: { id: string; token: string };
 
   beforeAll(async () => {
     if (!app) {
-      const _servers = await AutoServer.start();
-      const exposedServer = _servers.find(({ type }) => type === 'exposed')!;
-
-      app = exposedServer.app;
-      servers = _servers.map(({ server }) => server!).filter(Boolean);
+      app = (await AutoServer.start())
+        .find(({ type }) => type === 'exposed')!
+        .app;
     }
 
     testUser = await createTestUser();
@@ -35,12 +31,6 @@ describe('Discussion Management Integration Tests', () => {
   });
 
   afterAll(async () => {
-    await Promise.all(
-      servers.map(server => new Promise<void>((resolve) => {
-        server.closeAllConnections();
-        server.close(() => resolve());
-      })),
-    );
     await sequelize.close();
   });
 

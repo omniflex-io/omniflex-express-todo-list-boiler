@@ -9,12 +9,6 @@ dotenv.config();
 const env = {
   isTesting: process.env.NODE_ENV === 'test',
   env: (process.env.NODE_ENV || 'development') as TBaseConfig['env'],
-
-  ports: {
-    exposed: parseInt(process.env.EXPOSED_PORT || '3500', 10),
-    staff: parseInt(process.env.STAFF_PORT || '3600', 10),
-    developer: parseInt(process.env.DEVELOPER_PORT || '3700', 10),
-  },
 };
 
 const jwt = {
