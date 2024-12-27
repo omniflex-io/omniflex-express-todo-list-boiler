@@ -1,13 +1,8 @@
 # Integration Test Patterns
 
-## Test Execution Requirements
+## Important Jest Behaviors
 
-1. Run tests from omniflex root directory:
-   ```bash
-   yarn test
-   ```
-
-2. Jest Execution Flow:
+Jest Execution Flow:
    ```
    1. Execute from omniflex root
    2. Load root jest.config
@@ -18,31 +13,53 @@
    7. Execute tests
    ```
 
-3. Jest Setup Configuration:
+1. **Jest Mock Hoisting**
+   ```typescript
+   // ⚠️ This won't work as expected:
+   const db = new Database();
+   
+   jest.mock('@omniflex/core', () => ({
+     Containers: {
+       db: db,  // ❌ db will be undefined due to hoisting
+     },
+   }));
+
+   // ✅ Correct way:
+   jest.mock('@omniflex/core', () => ({
+     Containers: {
+       db: new Database(),  // Create instance inside mock
+     },
+   }));
+   ```
+
+   Key Points:
+   - jest.mock calls are ALWAYS hoisted to run first
+   - Variables defined outside mock won't be available inside
+   - Use jest.setup.ts for initialization that must run before mocks
+
+2. **Jest Setup Flow**
    ```typescript
    // jest.setup.ts
    // this config is actually the jest.mock value, because jest.mock is hoisted to run first
    import config from '@/config';
    import { Containers } from '@omniflex/core';
 
-   // no matter what, the jest.mock are hoisted to run first
+   // 1. Mock declarations (hoisted)
    jest.mock('@/config', () => ({
      env: 'test',
+     isTesting: true,
      logging: {
        level: 'error',
-       exposeErrorDetails: false,
      },
-     // ... other config mocks
    }));
 
-   // Register the mocked config to Containers
+   // 2. Setup code (runs after mocks)
    Containers.asValues({
-     config,  // This is the mocked config from the import above
-     // ... other values
+     config,  // Uses mocked config
    });
    ```
 
-4. Mocking Strategy:
+3. Mocking Strategy:
    - Jest hoists all jest.mock calls to run first
    - Example from list.test.ts:
      ```typescript
@@ -53,7 +70,7 @@
      jest.mock('@/utils/jwt', () => require('../helpers/jwt'));
      ```
 
-5. Server Cleanup Requirements:
+4. Server Cleanup Requirements:
    - Must stop ALL servers after tests
    - Use closeAllConnections() before close()
    - Example:
@@ -84,14 +101,16 @@
 
 ## Server Configuration
 
-1. Server Setup:
+1. Server Setup Pattern:
    ```typescript
    // Import route handlers - this triggers server configuration
    import './../../list.exposed.routes';
+   import './../../item.exposed.routes';
 
    describe('Integration Tests', () => {
      let app: Express;
      let servers: Server[];
+     let testUser: { id: string; token: string };
 
      beforeAll(async () => {
        if (!app) {
@@ -103,11 +122,19 @@
        }
      });
 
-     afterAll(() => {
-       for (const server of servers) {
-         server.closeAllConnections();
-         server.close();
-       }
+     afterAll(async () => {
+       // Clean up ALL servers properly
+       await Promise.all(
+         servers.map(server => new Promise<void>((resolve) => {
+           server.closeAllConnections();
+           server.close(() => resolve());
+         })),
+       );
+       await sequelize.close();
+     });
+
+     afterEach(async () => {
+       await resetTestData();
      });
    });
    ```
@@ -117,31 +144,53 @@
    - Route imports trigger configuration
    - Clean up ALL servers after tests
 
-## Test Helpers
+## Test Helper Patterns
 
-Example from todo-lists module:
-```typescript
-// __tests__/helpers/setup.ts
-export const createTestUser = async () => {
-  const userId = uuid();
-  const token = await jwtProvider.sign({
-    id: userId,
-    __appType: 'exposed',
-    __type: 'access-token',
-    __identifier: 'testing',
-  }, 10 * 1000);
+1. User Creation Helper:
+   ```typescript
+   export const createTestUser = async () => {
+     const userId = uuid();
+     const token = await jwtProvider.sign({
+       id: userId,
+       __appType: 'exposed',
+       __type: 'access-token',
+       __identifier: 'testing',
+     }, 10 * 1000);
 
-  return { id: userId, token };
-};
+     return { id: userId, token };
+   };
+   ```
 
-export const createTestList = async (ownerId: string, title: string) => {
-  return lists.create({
-    ownerId,
-    title,
-    isArchived: false,
-  });
-};
-```
+2. Resource Creation Helper:
+   ```typescript
+   export const createTestList = async (ownerId: string, name: string) => {
+     return lists.create({
+       ownerId,
+       name,
+       isArchived: false,
+     });
+   };
+
+   export const createTestItem = async (listId: string, content: string) => {
+     return items.create({
+       listId,
+       content,
+       isCompleted: false,
+     });
+   };
+   ```
+
+3. Data Reset Helper:
+   ```typescript
+   export const resetTestData = async () => {
+     // Use soft delete for all entities
+     await messages.updateMany({}, { deletedAt: new Date() });
+     await discussions.updateMany({}, { deletedAt: new Date() });
+     await items.updateMany({}, { deletedAt: new Date() });
+     await lists.updateMany({}, { deletedAt: new Date() });
+     await invitations.updateMany({}, { deletedAt: new Date() });
+   };
+   ```
 
 ## Multi-Server Testing
 
@@ -319,3 +368,70 @@ describe('Cross-Server Tests', () => {
    - Test both positive and negative cases
    - Verify error response codes match security requirements
    - Document when 404 is used instead of 403 for security
+
+## Assertion Patterns
+
+1. Response Structure Assertions:
+   ```typescript
+   describe('Response Structure Tests', () => {
+     it('should return correct list structure', async () => {
+       const { body } = await request(app)
+         .get(`/v1/todo-lists/${list.id}`)
+         .set('Authorization', `Bearer ${token}`)
+         .expect(200);
+
+       expect(body).toHaveProperty('data');
+       expect(body.data).toMatchObject({
+         id: expect.any(String),
+         name: list.name,
+         ownerId: testUser.id,
+         isArchived: false,
+       });
+     });
+
+     it('should handle nested response structure', async () => {
+       const { body: { data: list } } = await request(app)
+         .post('/v1/todo-lists')
+         .set('Authorization', `Bearer ${testUser.token}`)
+         .send({ name: 'Test List' })
+         .expect(201);
+
+       expect(list).toMatchObject({
+         id: expect.any(String),
+         name: 'Test List',
+         ownerId: testUser.id,
+       });
+     });
+   });
+   ```
+
+2. Security Assertions:
+   ```typescript
+   describe('Security Tests', () => {
+     it('should not reveal resource existence', async () => {
+       const otherList = await createTestList(otherUser.id, 'Other List');
+
+       // Should return 404 instead of 403 for security
+       await request(app)
+         .get(`/v1/todo-lists/${otherList.id}`)
+         .set('Authorization', `Bearer ${token}`)
+         .expect(404);
+     });
+
+     it('should require authentication', async () => {
+       await request(app)
+         .get('/v1/todo-lists')
+         .expect(401);
+     });
+
+     it('should require proper authorization', async () => {
+       const list = await createTestList(testUser.id, 'Test List');
+
+       // Should not reveal list existence to non-members
+       await request(app)
+         .patch(`/v1/todo-lists/${list.id}/archive`)
+         .set('Authorization', `Bearer ${otherUser.token}`)
+         .expect(404);  // Not 403
+     });
+   });
+   ```
