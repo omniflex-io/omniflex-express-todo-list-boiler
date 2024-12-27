@@ -36,10 +36,10 @@ class ItemController extends BaseEntitiesController<TItem> {
     });
   }
 
-  tryList() {
+  tryListAll() {
     return this.tryAction(async () => {
       const { list } = this.res.locals.required;
-      return super.tryList({ listId: list.id });
+      return super.tryListAll({ listId: list.id });
     });
   }
 
@@ -74,7 +74,7 @@ router
 
     auth.requireExposed,
     validateItemAccess,
-    ItemController.create(controller => controller.tryList()))
+    ItemController.create(controller => controller.tryListAll()))
 
   .get('/:listId/items/:id',
     // #swagger.summary = 'Get a specific todo item'

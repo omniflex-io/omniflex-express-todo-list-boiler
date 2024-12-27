@@ -82,7 +82,7 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
     return this.tryAction(async () => {
       const { listId } = this.req.params;
 
-      return super.tryList({ listId });
+      return super.tryListAll({ listId });
     });
   }
 
@@ -90,19 +90,19 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
     return this.tryAction(async () => {
       const { listId } = this.req.params;
 
-      return super.tryList({ listId });
+      return super.tryListAll({ listId });
     });
   }
 
   tryListMyInvitations() {
-    return super.tryList({
+    return super.tryListAll({
       status: 'pending',
       inviteeId: this.user.id,
     });
   }
 
   tryListMyInvitedLists() {
-    return super.tryList({
+    return super.tryListAll({
       status: 'accepted',
       inviteeId: this.user.id,
     });
