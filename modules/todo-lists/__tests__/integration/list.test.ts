@@ -17,6 +17,7 @@ describe('List Management Integration Tests', () => {
 
   let app: Express;
   let testUser: { id: string; token: string; };
+  let otherUser: { id: string; token: string; };
 
   beforeAll(async () => {
     if (!app) {
@@ -26,6 +27,7 @@ describe('List Management Integration Tests', () => {
     }
 
     testUser = await createTestUser();
+    otherUser = await createTestUser();
     await sequelize.sync({ force: true });
   });
 
@@ -150,10 +152,34 @@ describe('List Management Integration Tests', () => {
       expect(response.body).toHaveProperty('data');
       expect(response.body.data).toHaveLength(0);
     });
+
+    it('should not list other users\' lists', async () => {
+      const otherList = await lists.create({
+        ownerId: otherUser.id,
+        name: 'Other User\'s List',
+        isArchived: false,
+      });
+
+      await invitations.create({
+        listId: otherList.id,
+        inviterId: otherUser.id,
+        inviteeId: otherUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+
+      const response = await request(app)
+        .get('/v1/todo-lists')
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveLength(0);
+    });
   });
 
   describe('GET /v1/todo-lists/:id', () => {
-    it('should get a specific list', async () => {
+    it('should get a specific list as owner', async () => {
       const list = await lists.create({
         ownerId: testUser.id,
         name: 'Test List',
@@ -180,6 +206,48 @@ describe('List Management Integration Tests', () => {
         ownerId: testUser.id,
         isArchived: false,
       });
+    });
+
+    it('should get a specific list as member', async () => {
+      const list = await lists.create({
+        ownerId: otherUser.id,
+        name: 'Other User\'s List',
+        isArchived: false,
+      });
+
+      await invitations.create({
+        listId: list.id,
+        inviterId: otherUser.id,
+        inviteeId: testUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+
+      const response = await request(app)
+        .get(`/v1/todo-lists/${list.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toMatchObject({
+        id: list.id,
+        name: list.name,
+        ownerId: otherUser.id,
+        isArchived: false,
+      });
+    });
+
+    it('should not reveal list existence to non-members', async () => {
+      const otherList = await lists.create({
+        ownerId: otherUser.id,
+        name: 'Other User\'s List',
+        isArchived: false,
+      });
+
+      await request(app)
+        .get(`/v1/todo-lists/${otherList.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
     });
   });
 
@@ -211,6 +279,30 @@ describe('List Management Integration Tests', () => {
         isArchived: true,
       });
     });
+
+    it('should not list other users\' archived lists', async () => {
+      const otherArchivedList = await lists.create({
+        ownerId: otherUser.id,
+        name: 'Other User\'s Archived List',
+        isArchived: true,
+      });
+
+      await invitations.create({
+        listId: otherArchivedList.id,
+        inviterId: otherUser.id,
+        inviteeId: otherUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+
+      const response = await request(app)
+        .get('/v1/todo-lists/archived')
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveLength(0);
+    });
   });
 
   describe('PATCH /v1/todo-lists/:id/archive', () => {
@@ -234,7 +326,6 @@ describe('List Management Integration Tests', () => {
     });
 
     it('should not reveal list existence to non-owners', async () => {
-      const otherUser = await createTestUser();
       const otherList = await lists.create({
         ownerId: otherUser.id,
         name: 'Other User\'s List',

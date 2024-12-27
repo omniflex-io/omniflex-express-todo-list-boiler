@@ -1,5 +1,27 @@
 # Todo Lists Use Cases
 
+## Security Requirements
+
+### Information Leakage Prevention
+- All endpoints must prevent information leakage about resource existence
+- Unauthorized access attempts must return 404 (not 403) to prevent resource existence confirmation
+- List endpoints must only return lists the user has access to
+- No endpoint should reveal the existence of lists to unauthorized users
+- This applies to all operations: viewing, updating, archiving, etc.
+
+### Access Control Principles
+- Authentication is required for all operations
+- Authorization is validated before any operation
+- List operations require either:
+  - List ownership, or
+  - Active accepted invitation
+- Non-members must not be able to:
+  - Discover list existence
+  - View list contents
+  - Modify list state
+  - Access list items
+  - View or participate in discussions
+
 ## List Management
 
 ### Create List
