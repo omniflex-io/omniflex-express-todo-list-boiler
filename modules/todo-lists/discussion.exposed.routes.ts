@@ -7,9 +7,8 @@ import { ExposedRouter } from '@/servers';
 import { TDiscussion } from './models';
 import { discussions, items, messages } from './todo.repo';
 import {
-  validateItemAccess,
-  validateDiscussionAccess,
   byItemId,
+  validateItemAccess,
 } from './middlewares';
 
 import {
@@ -75,7 +74,6 @@ router
     // #swagger.parameters['id'] = { description: 'UUID of the discussion' }
 
     auth.requireExposed,
-    validateDiscussionAccess,
     DiscussionController.create(controller => controller.tryGetMessages()));
 
-export default router; 
+export default router;

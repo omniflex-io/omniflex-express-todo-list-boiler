@@ -35,10 +35,10 @@ class MessageController extends BaseEntitiesController<TMessage> {
     });
   }
 
-  tryListPaginated() {
+  tryListAll() {
     return this.tryAction(async () => {
       const { discussion } = this.res.locals.required;
-      return super.tryListPaginated({ discussionId: discussion.id });
+      return super.tryListAll({ discussionId: discussion.id });
     });
   }
 }
@@ -58,4 +58,4 @@ router
     validateDiscussionAccess,
     MessageController.create(controller => controller.tryCreate()));
 
-export default router; 
+export default router;
