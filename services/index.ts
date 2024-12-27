@@ -47,6 +47,9 @@ const initializeIdentity = async () => {
   })();
 
   sequelize && await sequelize.sync();
-  await swagger.initialize();  // -- generate docs and bind routes
+
+  !config.isTesting &&
+    await swagger.initialize();  // -- generate docs and bind routes
+
   await AutoServer.start();
 })();

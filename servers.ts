@@ -1,12 +1,13 @@
+import config from '@/config';
 import { auth } from '@/middlewares/auth';
 import { skipSwaggerStaticLogger } from '@/middlewares/swagger-logger';
 import { AutoServer } from '@omniflex/infra-express';
 
 export const servers = [
-  { type: 'exposed', port: 3500 },
-  { type: 'staff', port: 3600 },
-  { type: 'developer', port: 3700 },
-];
+  { type: 'exposed', port: config.ports.exposed },
+  { type: 'staff', port: config.ports.staff },
+  { type: 'developer', port: config.ports.developer },
+].filter(({ type }) => !config.isTesting || type == 'exposed');
 
 export const [
   ExposedRouter,
@@ -36,10 +37,12 @@ export const [
 ExposedRouter('/v1')
   .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
 
-// -- http://localhost:3600/v1/ping
-StaffRouter('/v1')
-  .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
+if (!config.isTesting) {
+  // -- http://localhost:3600/v1/ping
+  StaffRouter('/v1')
+    .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
 
-// -- http://localhost:3700/v1/ping
-DeveloperRouter('/v1')
-  .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
+  // -- http://localhost:3700/v1/ping
+  DeveloperRouter('/v1')
+    .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
+}
