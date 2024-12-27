@@ -1,5 +1,6 @@
 import { Response } from 'express';
-import { RequiredDbEntries } from '@omniflex/infra-express';
+import { errors } from '@omniflex/core';
+import { ExpressUtils, RequiredDbEntries } from '@omniflex/infra-express';
 
 import { lists, invitations, items, discussions } from '../todo.repo';
 
@@ -42,10 +43,27 @@ export const validateListAccess = [
 
 export const validateItemAccess = [
   RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' }),
-  RequiredDbEntries.firstMatch(
-    invitations,
-    (req, res) => getInvitationQuery(req.params.listId, res),
-    true,
+  ExpressUtils.tryAction(
+    async (req, res) => {
+      const listId = req.params.listId;
+      const userId = res.locals.user.id;
+
+      const [isOwner, isInvited] = await Promise.all([
+        lists.exists({
+          id: listId,
+          ownerId: userId,
+        }),
+        invitations.exists({
+          listId,
+          inviteeId: userId,
+          status: 'accepted',
+        }),
+      ]);
+
+      if (!isOwner && !isInvited) {
+        throw errors.notFound();
+      }
+    }
   ),
 ];
 
@@ -59,12 +77,26 @@ export const validateDiscussionAccess = [
     },
     'item'
   ),
-  RequiredDbEntries.firstMatch(
-    invitations,
+  ExpressUtils.tryAction(
     async (req, res) => {
       const item = res.locals.required.item;
-      return getInvitationQuery(item.listId, res);
-    },
-    true
+      const userId = res.locals.user.id;
+
+      const [isOwner, isInvited] = await Promise.all([
+        lists.exists({
+          id: item.listId,
+          ownerId: userId,
+        }),
+        invitations.exists({
+          listId: item.listId,
+          inviteeId: userId,
+          status: 'accepted',
+        }),
+      ]);
+
+      if (!isOwner && !isInvited) {
+        throw errors.notFound();
+      }
+    }
   ),
-]; 
+];
