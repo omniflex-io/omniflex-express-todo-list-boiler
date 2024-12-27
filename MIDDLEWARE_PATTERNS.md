@@ -28,67 +28,123 @@ RequiredDbEntries.firstMatch(
 2. **Standardized Error Handling**
    - Uses the infrastructure's built-in error handling
    - Consistent error responses across the application
+   - Security-first approach (404 instead of 403 for unauthorized access)
 
 3. **Performance**
    - `countOnly: true` optimizes permission checks
    - No unnecessary data fetching
+   - Efficient query patterns for nested resources
 
-## Middleware Composition Pattern
+### Resource Existence Check Patterns
 
-When building validation chains, follow these composition patterns:
-
-1. **Internal Middleware Components**
+1. **Using byPathId (Simple Cases)**
    ```typescript
-   // Single-purpose, reusable middleware functions
-   const validateInviteeAccess = RequiredDbEntries.firstMatch(
-     invitations,
-     (req, res) => ({
+   // When resource ID is directly in path params
+   RequiredDbEntries.byPathId(repository, 'resource')
+   ```
+
+2. **Using firstMatch (Complex Cases)**
+   ```typescript
+   // When need custom query conditions
+   RequiredDbEntries.firstMatch(
+     repository,
+     req => ({
        id: req.params.id,
-       inviteeId: res.locals.user.id,
+       type: req.query.type,
+       isActive: true,
      }),
-     true,
+     'resource'  // Store as 'resource' in res.locals.required
    );
 
-   const validateListOwnership = RequiredDbEntries.firstMatch(
-     lists,
-     (req, res) => ({
-       id: req.params.listId,
-       ownerId: res.locals.user.id,
+   // When checking related resources
+   RequiredDbEntries.firstMatch(
+     items,
+     req => ({
+       id: req.params.itemId,
+       listId: req.params.listId,  // Ensure item belongs to list
      }),
-     true,
+     'item'
+   );
+
+   // When need to combine multiple conditions
+   RequiredDbEntries.firstMatch(
+     invitations,
+     req => ({
+       code: req.params.code,
+       expiresAt: { $gt: new Date() },
+       status: 'pending',
+     }),
+     'invitation'
    );
    ```
 
-2. **Exported Validation Chains**
-   ```typescript
-   // Compose internal components into complete validation chains
-   export const validateInvitationAcceptance = [
-     RequiredDbEntries.byPathId(invitations, 'invitation'),
-     validateInviteeAccess,
-   ];
+### Why Use firstMatch for Existence Checks?
 
-   export const validateListAccess = [
-     RequiredDbEntries.byPathId(lists, 'list'),
-     validateListOwnership,
-   ];
-   ```
+1. **Flexible Querying**
+   - Support complex query conditions
+   - Combine multiple fields
+   - Use database operators
+
+2. **Data Validation**
+   - Validate relationships between resources
+   - Check status and temporal conditions
+   - Ensure data integrity
+
+3. **Performance**
+   - Single database query
+   - No need for additional validation
+   - Efficient error handling
+
+## Nested Resource Validation Pattern
+
+When validating access to nested resources (e.g., discussion in an item in a list), use this pattern:
+
+```typescript
+export const validateNestedAccess = [
+  // 1. Validate the target resource
+  RequiredDbEntries.byPathId(targetResource, 'target'),
+
+  // 2. Validate parent resource
+  RequiredDbEntries.firstMatch(
+    parentResource,
+    async (_, res) => {
+      const target = res.locals.required.target;
+      return { id: target.parentId };
+    },
+    'parent'
+  ),
+
+  // 3. Validate root resource access
+  RequiredDbEntries.firstMatch(
+    rootResource,
+    async (_, res) => {
+      const parent = res.locals.required.parent;
+      return {
+        id: parent.rootId,
+        userId: res.locals.user.id,
+      };
+    },
+    true
+  ),
+];
+```
 
 ### Why This Pattern?
 
-1. **Component Reusability**
-   - Internal middleware components are single functions
-   - Can be composed into multiple validation chains
-   - Easier to maintain and update
+1. **Clear Resource Hierarchy**
+   - Each level of validation is explicit
+   - Resource relationships are clearly defined
+   - Easy to follow the validation chain
 
-2. **Clear Intent**
-   - Exported arrays clearly represent validation chains
-   - Internal functions clearly represent reusable components
-   - Makes the code more self-documenting
+2. **Efficient Data Access**
+   - Uses previously loaded resources
+   - Minimizes database queries
+   - Maintains context between middlewares
 
-3. **Type Safety**
-   - Single middleware functions are easier to type
-   - Avoids nested array type issues
-   - Better TypeScript integration
+3. **Consistent Error Handling**
+   - Same error pattern at each level
+   - Clear security boundaries
+   - Predictable response format
 
 ## Validation Middleware Pattern
 
@@ -142,28 +198,6 @@ When implementing validation logic, prefer middleware over controller methods:
    ];
    ```
 
-3. **Complex Validation Chains**
-   ```typescript
-   // Internal component for list ownership check
-   const validateListOwnership = RequiredDbEntries.firstMatch(
-     lists,
-     async (req, res) => {
-       const invitation = res.locals.required.invitation;
-       return {
-         id: invitation.listId,
-         ownerId: res.locals.user.id,
-       };
-     },
-     true,
-   );
-
-   // Exported validation chain
-   export const validateInvitationApproval = [
-     RequiredDbEntries.byPathId(invitations, 'invitation'),
-     validateListOwnership,
-   ];
-   ```
-
 ### Why Use Validation Middleware?
 
 1. **Separation of Concerns**
@@ -186,102 +220,200 @@ When implementing validation logic, prefer middleware over controller methods:
    - Standard error responses across the application
    - Better user experience
 
-## Implementation Patterns
+5. **Code Organization**
+   - Controllers stay focused on business logic
+   - Validation rules are centralized
+   - Easier to understand and modify
 
-### Resource Validation
+6. **Testing Benefits**
+   - Validation logic can be tested independently
+   - Controller tests can focus on business logic
+   - Easier to mock validated data
 
-```typescript
-// Validate by path ID
-RequiredDbEntries.byPathId(lists, 'list')
+## Middleware Composition Pattern
 
-// Validate by custom field name
-RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' })
+When building validation chains, follow these composition patterns:
 
-// Validate by body ID
-RequiredDbEntries.byBodyId(users, 'user')
-```
+1. **Internal Middleware Components**
+   ```typescript
+   // Single-purpose, reusable middleware functions
+   const validateAccess = RequiredDbEntries.firstMatch(
+     repository,
+     (req, res) => ({
+       id: req.params.id,
+       userId: res.locals.user.id,
+     }),
+     true,
+   );
+   ```
 
-### Permission Validation
+2. **Exported Validation Chains**
+   ```typescript
+   // Compose internal components into complete validation chains
+   export const validateResourceAccess = [
+     RequiredDbEntries.byPathId(repository, 'resource'),
+     validateAccess,
+   ];
+   ```
 
-```typescript
-// Using a reusable query function
-const getInvitationQuery = (listId: string, res: Response) => ({
-  listId,
-  inviteeId: res.locals.user.id,
-  status: 'accepted',
-});
+### Why This Pattern?
 
-RequiredDbEntries.firstMatch(
-  invitations,
-  (req, res) => getInvitationQuery(req.params.id, res),
-  true,
-)
-```
+1. **Component Reusability**
+   - Internal middleware components are single functions
+   - Can be composed into multiple validation chains
+   - Easier to maintain and update
 
-### Combined Validation
+2. **Clear Intent**
+   - Exported arrays clearly represent validation chains
+   - Internal functions clearly represent reusable components
+   - Makes the code more self-documenting
 
-```typescript
-export const validateListAccess = [
-  // Check if list exists
-  RequiredDbEntries.byPathId(lists, 'list'),
-  
-  // Check if user has permission
-  RequiredDbEntries.firstMatch(
-    invitations,
-    (req, res) => ({
-      listId: req.params.id,
-      inviteeId: res.locals.user.id,
-      status: 'accepted',
-    }),
-    true,
-  ),
-];
-```
+3. **Type Safety**
+   - Single middleware functions are easier to type
+   - Avoids nested array type issues
+   - Better TypeScript integration
 
-### Nested Resource Validation
+## Performance Optimization Patterns
 
-```typescript
-// For resources that require validating a chain of parent resources
-export const validateDiscussionAccess = [
-  // 1. Get the discussion
-  RequiredDbEntries.byPathId(discussions, 'discussion'),
+1. **Query Optimization**
+   ```typescript
+   // Reuse query functions
+   const getAccessQuery = (id: string, userId: string) => ({
+     id,
+     userId,
+   });
 
-  // 2. Get the parent item
-  RequiredDbEntries.firstMatch(
-    items,
-    async (req, res) => {
-      const discussion = res.locals.required.discussion;
-      return { id: discussion.itemId };
-    },
-    'item'
-  ),
+   // Use countOnly for existence checks
+   RequiredDbEntries.firstMatch(
+     repository,
+     (req, res) => getAccessQuery(req.params.id, res.locals.user.id),
+     true,  // countOnly: true
+   );
+   ```
 
-  // 3. Validate list access
-  RequiredDbEntries.firstMatch(
-    invitations,
-    async (req, res) => {
-      const item = res.locals.required.item;
-      return getInvitationQuery(item.listId, res);
-    },
-    true
-  ),
-];
-```
+2. **Resource Caching**
+   ```typescript
+   // Store in res.locals.required for reuse
+   RequiredDbEntries.byPathId(repository, 'resource');
+
+   // Use in subsequent middleware
+   RequiredDbEntries.firstMatch(
+     otherRepo,
+     (_, res) => {
+       const resource = res.locals.required.resource;
+       return { resourceId: resource.id };
+     },
+     true,
+   );
+   ```
+
+3. **Parallel Validation**
+   ```typescript
+   // When multiple independent checks are needed
+   ExpressUtils.tryAction(async (req, res) => {
+     const [isOwner, isMember] = await Promise.all([
+       repository.exists({ id, ownerId: userId }),
+       memberships.exists({ id, userId }),
+     ]);
+
+     if (!isOwner && !isMember) {
+       throw errors.notFound();
+     }
+   });
+   ```
+
+## Security-First Error Handling
+
+1. **Resource Not Found vs Unauthorized**
+   ```typescript
+   // Always return 404 for unauthorized access
+   if (!isAuthorized) {
+     throw errors.notFound();  // Instead of errors.forbidden()
+   }
+   ```
+
+2. **Information Disclosure**
+   ```typescript
+   // Don't reveal resource existence
+   const validateAccess = RequiredDbEntries.firstMatch(
+     repository,
+     query,
+     true,  // countOnly prevents data leakage
+   );
+   ```
+
+3. **Error Response Consistency**
+   - Use 401 for authentication failures
+   - Use 404 for resource not found AND unauthorized access
+   - Use 403 only when resource existence should be confirmed
 
 ## Best Practices
 
-1. Always use array of middlewares for exported validation chains
-2. Keep internal middleware components as single functions
-3. Use `countOnly: true` for permission checks when you don't need the data
-4. Keep permission query logic in reusable functions
-5. Use consistent naming for stored entities in `res.locals.required`
-6. Break down complex validations into smaller, focused middleware functions
-7. Leverage the infrastructure's error handling mechanisms
-8. For nested resources, validate the entire chain of parent resources
-9. Store intermediate results in res.locals.required for reuse
-10. Move validation logic from controllers to middleware
-11. Keep controllers focused on business logic
-12. Make validation middleware reusable when possible
-13. Use early validation to improve performance
-14. Name internal components with clear, action-based names (e.g., validateInviteeAccess)
-15. Name exported chains with clear, feature-based names (e.g., validateInvitationAcceptance) 
+1. **Component Organization**
+   - Keep base components internal
+   - Export complete validation chains
+   - Use consistent naming patterns
+
+2. **Validation Chain Construction**
+   - Start with request schema validation, followed by resource existence check
+   - Add permission validations
+   - Add nested resource validations if needed
+
+3. **Query Functions**
+   - Extract common query logic into functions
+   - Keep queries focused and reusable
+   - Use type-safe parameters
+
+4. **Performance**
+   - Use `countOnly: true` for existence checks
+   - Minimize database queries
+   - Chain validations efficiently
+
+5. **Error Handling**
+   - Use infrastructure error handling
+   - Provide clear error messages
+   - Maintain security in error responses
+
+6. **Resource Validation**
+   ```typescript
+   // Validate by path ID
+   RequiredDbEntries.byPathId(repository, 'resource')
+
+   // Validate by custom field name
+   RequiredDbEntries.byPathId(repository, 'resource', { fieldName: 'resourceId' })
+   ```
+
+7. **Permission Validation**
+   ```typescript
+   // Using a reusable query function
+   const getPermissionQuery = (id: string, userId: string) => ({
+     resourceId: id,
+     userId,
+     status: 'active',
+   });
+
+   RequiredDbEntries.firstMatch(
+     permissions,
+     (req, res) => getPermissionQuery(req.params.id, res.locals.user.id),
+     true,
+   );
+   ```
+
+8. **Combined Validation**
+   ```typescript
+   export const validateAccess = [
+     // Check if resource exists
+     RequiredDbEntries.byPathId(repository, 'resource'),
+     
+     // Check if user has permission
+     RequiredDbEntries.firstMatch(
+       permissions,
+       (req, res) => ({
+         resourceId: req.params.id,
+         userId: res.locals.user.id,
+         status: 'active',
+       }),
+       true,
+     ),
+   ];
+   ``` 
