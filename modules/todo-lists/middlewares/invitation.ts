@@ -47,7 +47,7 @@ export const validateInvitationApproval = [
   RequiredDbEntries.byPathId(invitations, 'invitation'),
   RequiredDbEntries.firstMatch(
     lists,
-    async (req, res) => {
+    async (_, res) => {
       const invitation = res.locals.required.invitation;
       return {
         id: invitation.listId,

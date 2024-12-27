@@ -71,14 +71,14 @@ export const validateDiscussionAccess = [
   RequiredDbEntries.byPathId(discussions, 'discussion'),
   RequiredDbEntries.firstMatch(
     items,
-    async (req, res) => {
+    async (_, res) => {
       const discussion = res.locals.required.discussion;
       return { id: discussion.itemId };
     },
     'item',
   ),
   ExpressUtils.tryAction(
-    async (req, res) => {
+    async (_, res) => {
       const item = res.locals.required.item;
       const userId = res.locals.user.id;
 
