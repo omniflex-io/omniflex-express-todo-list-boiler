@@ -34,12 +34,12 @@ export const [
 
 // -- http://localhost:3500/v1/ping
 ExposedRouter('/v1')
-  .get('/ping/', (_, res) => { res.send('Hello, world!'); });
+  .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
 
 // -- http://localhost:3600/v1/ping
 StaffRouter('/v1')
-  .get('/ping/', (_, res) => { res.send('Hello, staff!'); });
+  .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
 
 // -- http://localhost:3700/v1/ping
 DeveloperRouter('/v1')
-  .get('/ping/', (_, res) => { res.send('Hello, developer!'); });
+  .get('/ping/', (_, res) => { res.json({ data: 'pong' }); });
