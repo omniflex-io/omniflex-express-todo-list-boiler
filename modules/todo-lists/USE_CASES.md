@@ -55,7 +55,12 @@
 - Messages are ordered chronologically
 - System shows who posted each message
 - Message access requires valid list membership
-- Message creation requires valid list membership
+
+### Post Message
+- Only list members can post messages
+- Messages must have content
+- System records who posted the message and when
+- Message posting requires valid list membership
 
 ## Access Control
 

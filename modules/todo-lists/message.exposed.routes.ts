@@ -31,6 +31,7 @@ class MessageController extends BaseEntitiesController<TMessage> {
       return super.tryCreate({
         discussionId: discussion.id,
         senderId: this.user.id,
+        ...this.req.body,
       });
     });
   }
