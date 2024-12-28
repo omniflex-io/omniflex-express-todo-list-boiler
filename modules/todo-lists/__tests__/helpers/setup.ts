@@ -15,11 +15,21 @@ export const createTestUser = async () => {
 };
 
 export const createTestList = async (ownerId: string, name: string) => {
-  return lists.create({
+  const list = await lists.create({
     ownerId,
     name,
     isArchived: false,
   });
+
+  await invitations.create({
+    listId: list.id,
+    inviterId: ownerId,
+    inviteeId: ownerId,
+    status: 'accepted',
+    approved: true,
+  });
+
+  return list;
 };
 
 export const createTestItem = async (listId: string, content: string) => {

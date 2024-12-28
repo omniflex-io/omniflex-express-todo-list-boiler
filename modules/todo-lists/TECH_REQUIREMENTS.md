@@ -124,10 +124,30 @@ interface TMessage {
 
 ### Access Control
 - Validate JWT for all endpoints
+- Access levels are strictly enforced:
+  - Owner: Full control over list and its settings
+  - Member: Access to list content and items
+  - Non-member: No access or visibility
+- Owner-specific operations:
+  - Archive/unarchive lists
+  - Manage invitations
+  - Generate invitation codes
+  - Approve manual invitations
+- Member-specific operations:
+  - View list and items
+  - Create/update items
+  - Participate in discussions
+  - Complete/uncomplete items
 - Check invitation status and approval for list access
 - Validate list access before item access
 - Validate list ownership for approval actions
 - Validate invitation code expiry and usage
+
+### Error Handling Patterns
+- Owner-only operations return 404 for non-owners
+- Member-only operations return 404 for non-members
+- Never reveal resource existence to unauthorized users
+- Use consistent error patterns across all endpoints
 
 ### Data Validation
 - Required fields must be present

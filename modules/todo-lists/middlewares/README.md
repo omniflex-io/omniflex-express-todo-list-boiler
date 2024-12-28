@@ -67,27 +67,62 @@ export const validateInvitationAcceptance = [
 
 ## Access Control Patterns
 
-1. **List Access**
-   - Validate list existence
-   - Check user membership or ownership
-   - Used in: GET /:id, GET /:listId/items
+### Access Level Implementation
 
-2. **Item Access**
-   - Validate list existence
-   - Check user membership in parent list
-   - Used in: GET /:listId/items/:itemId, POST /:listId/items
+1. **Owner Access Pattern**
+   - Validates list ownership using `validateListOwner`
+   - Used for sensitive operations (archive, member management)
+   - Returns 404 for non-owners to prevent information leakage
+   - Example endpoints:
+     - PATCH /:id/archive
+     - POST /:listId/invitations/codes
+     - GET /:listId/invitations
 
-3. **Discussion Access**
-   - Validate discussion existence
-   - Validate parent item existence
-   - Check user membership in parent list
-   - Used in: GET /discussions/:id/messages
+2. **Member Access Pattern**
+   - Validates accepted invitation using `validateListAccess`
+   - Used for content operations (items, discussions)
+   - Returns 404 for non-members to prevent information leakage
+   - Example endpoints:
+     - GET /:id
+     - GET /:listId/items
+     - POST /:listId/items/:itemId/complete
 
-4. **Invitation Access**
-   - Owner: Full access to list invitations
-   - Inviter/Invitee: Access to specific invitations
-   - Members: No access to other members' invitations
-   - Used in: GET /:listId/invitations, GET /invitations/:id
+3. **Nested Resource Access**
+   - Validates parent resource access first
+   - Inherits access level from parent resource
+   - Maintains consistent permission model
+   - Example: Discussion access requires list membership
+
+### Error Handling Strategy
+
+1. **Information Leakage Prevention**
+   - Use 404 instead of 403 for unauthorized access
+   - Consistent error messages across all endpoints
+   - No distinction between non-existent and unauthorized resources
+   - Example implementation:
+     ```typescript
+     export const validateListOwner = RequiredDbEntries.firstMatch(
+       lists,
+       (req, res) => ({
+         id: req.params.id,
+         ownerId: res.locals.user.id,
+       }),
+       true, // throws 404 if not found
+     );
+     ```
+
+2. **Access Level Validation**
+   - Clear separation between owner and member checks
+   - Explicit middleware chains for each access level
+   - Consistent error handling across all routes
+   - Example chain:
+     ```typescript
+     router.patch('/:id/archive',
+       auth.requireExposed,
+       validateListOwner, // owner-only operation
+       controller.tryArchive()
+     );
+     ```
 
 ## Best Practices
 

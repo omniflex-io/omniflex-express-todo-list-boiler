@@ -12,6 +12,24 @@
 ### Access Control Principles
 - Authentication is required for all operations
 - Authorization is validated before any operation
+- Access levels are clearly defined:
+  1. Owner Access:
+     - Has full control over list settings
+     - Can archive/unarchive the list
+     - Can manage invitations and members
+     - Can perform all member operations
+     - Cannot be removed from the list
+  2. Member Access:
+     - Can view list contents
+     - Can create and update items
+     - Can complete/uncomplete items
+     - Can participate in discussions
+     - Cannot modify list settings
+     - Cannot manage other members
+  3. Non-member Access:
+     - Cannot discover list existence
+     - Cannot view or modify any content
+     - Can only join through valid invitations
 - List operations require either:
   - List ownership, or
   - Active accepted invitation

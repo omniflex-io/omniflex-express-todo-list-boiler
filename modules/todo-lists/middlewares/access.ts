@@ -36,34 +36,17 @@ export const validateListAccess = [
   RequiredDbEntries.byPathId(lists, 'list'),
   RequiredDbEntries.firstMatch(
     invitations,
-    (req, res) => getInvitationQuery(req.params.id, res),
+    (req, res) => getInvitationQuery(req.params.id || req.params.listId, res),
     true,
   ),
 ];
 
 export const validateItemAccess = [
   RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' }),
-  ExpressUtils.tryAction(
-    async (req, res) => {
-      const listId = req.params.listId;
-      const userId = res.locals.user.id;
-
-      const [isOwner, isInvited] = await Promise.all([
-        lists.exists({
-          id: listId,
-          ownerId: userId,
-        }),
-        invitations.exists({
-          listId,
-          inviteeId: userId,
-          status: 'accepted',
-        }),
-      ]);
-
-      if (!isOwner && !isInvited) {
-        throw errors.notFound();
-      }
-    },
+  RequiredDbEntries.firstMatch(
+    invitations,
+    (req, res) => getInvitationQuery(req.params.listId, res),
+    true,
   ),
 ];
 
@@ -82,19 +65,13 @@ export const validateDiscussionAccess = [
       const item = res.locals.required.item;
       const userId = res.locals.user.id;
 
-      const [isOwner, isInvited] = await Promise.all([
-        lists.exists({
-          id: item.listId,
-          ownerId: userId,
-        }),
-        invitations.exists({
-          listId: item.listId,
-          inviteeId: userId,
-          status: 'accepted',
-        }),
-      ]);
+      const invitation = await invitations.exists({
+        listId: item.listId,
+        inviteeId: userId,
+        status: 'accepted',
+      });
 
-      if (!isOwner && !isInvited) {
+      if (!invitation) {
         throw errors.notFound();
       }
     },
