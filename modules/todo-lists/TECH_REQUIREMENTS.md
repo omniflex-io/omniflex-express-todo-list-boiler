@@ -204,4 +204,32 @@ interface TMessage {
 4. Document all public interfaces
 5. Write maintainable tests
 6. Validate ownership before approval actions
-7. Maintain audit trail for approvals 
+7. Maintain audit trail for approvals
+
+## Implementation Principles
+
+### Request Validation
+- Validate request body schema as early as possible in the request pipeline
+- Fast fail for invalid request data before any resource-intensive operations
+- Schema validation should come before authentication to optimize resource usage
+- Example validation order:
+  1. Request schema validation (lightweight, fast rejection)
+  2. Authentication (JWT, more resource-intensive)
+  3. Access control checks
+  4. Business logic validation
+  5. Database operations
+- Exception: Skip early schema validation if it could expose sensitive information
+
+### Testing Philosophy
+- Implementation should be driven by use cases, not test requirements
+- Steps for feature development:
+  1. Define and validate the use case requirements
+  2. Design the implementation to satisfy the use case
+  3. Adjust tests to match the actual use case
+  4. Never compromise implementation quality for test convenience
+  5. If tests are difficult to write, review the implementation design
+- Test cases should reflect real-world usage patterns
+- When conflicts arise between tests and implementation:
+  1. Review the original use case requirements
+  2. Adjust either implementation or tests to match the use case
+  3. Document the reasoning for the chosen approach 

@@ -17,6 +17,32 @@ The middleware is organized into two main categories:
 
 ## Middleware Components
 
+### Request Pipeline Order
+
+1. **Schema Validation**
+   - Validates request body structure
+   - Fast fails for invalid data
+   - Lightweight operation, runs first
+   - Example:
+     ```typescript
+     router.post('/:listId/items',
+       validateRequestSchema(createItemSchema),
+       auth.requireExposed,
+       validateListAccess,
+       controller.tryCreate()
+     );
+     ```
+
+2. **Authentication** (`auth.requireExposed`)
+   - Validates JWT token (resource-intensive)
+   - Sets user context
+   - Runs after basic request validation
+
+3. **Access Control**
+   - Validates resource access
+   - Checks permissions
+   - Example chains shown in sections below
+
 ### Base Components (Internal)
 
 These are reusable, single-purpose middleware functions:
