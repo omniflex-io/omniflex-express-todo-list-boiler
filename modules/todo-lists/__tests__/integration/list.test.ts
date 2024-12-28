@@ -157,6 +157,17 @@ describe('List Management Integration Tests', () => {
       await expect404.get(`/v1/todo-lists/${list.id}`, testUser.token);
     });
 
+    it('[LIST-R0065] should not reveal list with accepted but not approved invitation', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
+      await invitations.updateById(invitation.id, {
+        status: 'accepted',
+        approved: false,
+      });
+
+      await expect404.get(`/v1/todo-lists/${list.id}`, testUser.token);
+    });
+
     it('[LIST-R0070] should require authentication', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 

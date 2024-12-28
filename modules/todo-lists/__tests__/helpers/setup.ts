@@ -9,7 +9,7 @@ export const createTestUser = async () => {
     __appType: 'exposed',
     __type: 'access-token',
     __identifier: 'testing',
-  }, 10 * 1000);
+  }, 5 * 60 * 1000);
 
   return { id: userId, token };
 };
@@ -54,13 +54,18 @@ export const createTestMessage = async (discussionId: string, authorId: string, 
   });
 };
 
-export const createTestInvitation = async (listId: string, inviterId: string, inviteeId: string) => {
+export const createTestInvitation = async (
+  listId: string,
+  inviterId: string,
+  inviteeId: string,
+  approved: boolean = true,
+) => {
   return invitations.create({
     listId,
     inviterId,
     inviteeId,
     status: 'pending',
-    approved: true,
+    approved,
   });
 };
 

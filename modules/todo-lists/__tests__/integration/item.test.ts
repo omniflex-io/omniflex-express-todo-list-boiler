@@ -26,8 +26,8 @@ describe('Item Management Integration Tests', () => {
   const expect404 = new RequestHelper(() => app, 404);
 
   let app: Express;
-  let testUser: { id: string; token: string };
-  let otherUser: { id: string; token: string };
+  let testUser: { id: string; token: string; };
+  let otherUser: { id: string; token: string; };
 
   beforeAll(async () => {
     if (!app) {
@@ -155,6 +155,19 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await createTestItem(list.id, 'Test Item 1');
       await createTestItem(list.id, 'Test Item 2');
+
+      await expect404
+        .get(`/v1/todo-lists/${list.id}/items`, testUser.token);
+    });
+
+    it('[ITM-R0035] should not reveal items with accepted but not approved invitation', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      await createTestItem(list.id, 'Test Item 1');
+      const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
+      await invitations.updateById(invitation.id, {
+        status: 'accepted',
+        approved: false,
+      });
 
       await expect404
         .get(`/v1/todo-lists/${list.id}/items`, testUser.token);
