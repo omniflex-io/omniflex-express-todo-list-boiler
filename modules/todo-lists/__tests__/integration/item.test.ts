@@ -3,14 +3,14 @@ import { Express } from 'express';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
-import { items, invitations } from '../../todo.repo';
+import { items, invitations, lists } from '../../todo.repo';
 
 // Import route handlers
 import './../../item.exposed.routes';
 import './../../list.exposed.routes';
 
 // Import test helpers
-import { createTestUser, createTestList, createTestItem } from '../helpers/setup';
+import { createTestUser, createTestList, createTestItem, createTestInvitation } from '../helpers/setup';
 
 describe('Item Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
@@ -87,6 +87,36 @@ describe('Item Management Integration Tests', () => {
       await request(app)
         .post(`/v1/todo-lists/${list.id}/items`)
         .set('Authorization', `Bearer ${otherUser.token}`)
+        .send({ content: 'Test Item' })
+        .expect(404);
+    });
+
+    it('[ITM-C0040] should not allow owner to add items to archived list', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .post(`/v1/todo-lists/${list.id}/items`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .send({ content: 'Test Item' })
+        .expect(404);
+    });
+
+    it('[ITM-C0050] should not allow member to add items to archived list', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
+      await invitations.updateById(invitation.id, { status: 'accepted' });
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .post(`/v1/todo-lists/${list.id}/items`)
+        .set('Authorization', `Bearer ${testUser.token}`)
         .send({ content: 'Test Item' })
         .expect(404);
     });
@@ -253,6 +283,43 @@ describe('Item Management Integration Tests', () => {
         .send({ content: 'Updated Item' })
         .expect(404);
     });
+
+    it('[ITM-U0035] should not allow updating items in archived list', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+      const item = await createTestItem(list.id, 'Test Item');
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .send({ content: 'Updated Item' })
+        .expect(404);
+    });
+
+    it('[ITM-U0036] should not allow member to update items in archived list', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      await invitations.create({
+        listId: list.id,
+        inviterId: otherUser.id,
+        inviteeId: testUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+      const item = await createTestItem(list.id, 'Test Item');
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .send({ content: 'Updated Item' })
+        .expect(404);
+    });
   });
 
   describe('PATCH /v1/todo-lists/:listId/items/:id/complete', () => {
@@ -273,6 +340,41 @@ describe('Item Management Integration Tests', () => {
         completedBy: testUser.id,
       });
       expect(response.body.data).toHaveProperty('completedAt');
+    });
+
+    it('[ITM-U0045] should not allow completing items in archived list', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+      const item = await createTestItem(list.id, 'Test Item');
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
+    });
+
+    it('[ITM-U0046] should not allow member to complete items in archived list', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      await invitations.create({
+        listId: list.id,
+        inviterId: otherUser.id,
+        inviteeId: testUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+      const item = await createTestItem(list.id, 'Test Item');
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
     });
 
     it('[ITM-U0050] should mark item as completed as member', async () => {
@@ -307,6 +409,51 @@ describe('Item Management Integration Tests', () => {
 
       await request(app)
         .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
+    });
+
+    it('[ITM-U0065] should not allow uncompleting items in archived list', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+      const item = await createTestItem(list.id, 'Test Item');
+      await items.updateById(item.id, {
+        isCompleted: true,
+        completedAt: new Date(),
+        completedBy: testUser.id,
+      });
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
+    });
+
+    it('[ITM-U0066] should not allow member to uncomplete items in archived list', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      await invitations.create({
+        listId: list.id,
+        inviterId: otherUser.id,
+        inviteeId: testUser.id,
+        status: 'accepted',
+        approved: true,
+      });
+      const item = await createTestItem(list.id, 'Test Item');
+      await items.updateById(item.id, {
+        isCompleted: true,
+        completedAt: new Date(),
+        completedBy: otherUser.id,
+      });
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(404);
     });

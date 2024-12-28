@@ -41,6 +41,15 @@ export const validateListAccess = [
   ),
 ];
 
+export const validateListNotArchived = RequiredDbEntries.firstMatch(
+  lists,
+  (_, res) => ({
+    id: res.locals.required.list.id,
+    isArchived: false,
+  }),
+  true,
+);
+
 export const validateItemAccess = [
   byListId,
   RequiredDbEntries.firstMatch(

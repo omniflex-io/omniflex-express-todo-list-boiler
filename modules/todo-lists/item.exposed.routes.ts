@@ -7,7 +7,7 @@ import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 
 import { TItem } from './models';
 import { items } from './todo.repo';
-import { validateItemAccess } from './middlewares';
+import { validateItemAccess, validateListNotArchived } from './middlewares';
 import {
   createItemSchema,
   updateItemSchema,
@@ -95,6 +95,7 @@ router
     tryValidateBody(createItemSchema),
     auth.requireExposed,
     validateItemAccess,
+    validateListNotArchived,
     ItemController.create(controller => controller.tryCreate()))
 
   .patch('/:listId/items/:itemId',
@@ -107,6 +108,7 @@ router
     tryValidateBody(updateItemSchema),
     auth.requireExposed,
     validateItemAccess,
+    validateListNotArchived,
     ItemController.create(controller => controller.tryUpdateContent()))
 
   .patch('/:listId/items/:itemId/complete',
@@ -117,6 +119,7 @@ router
 
     auth.requireExposed,
     validateItemAccess,
+    validateListNotArchived,
     ItemController.create(controller => controller.tryComplete()))
 
   .patch('/:listId/items/:itemId/uncomplete',
@@ -127,6 +130,7 @@ router
 
     auth.requireExposed,
     validateItemAccess,
+    validateListNotArchived,
     ItemController.create(controller => controller.tryUncomplete()));
 
 export default router;
