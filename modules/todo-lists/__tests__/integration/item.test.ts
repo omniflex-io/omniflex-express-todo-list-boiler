@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { Express } from 'express';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
@@ -10,6 +9,8 @@ import './../../item.exposed.routes';
 import './../../list.exposed.routes';
 
 // Import test helpers
+import { RequestHelper } from '../helpers/request';
+
 import {
   createTestUser,
   createTestList,
@@ -21,6 +22,8 @@ import {
 
 describe('Item Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
+  const expect200 = new RequestHelper(() => app, 200);
+  const expect404 = new RequestHelper(() => app, 404);
 
   let app: Express;
   let testUser: { id: string; token: string };
@@ -50,11 +53,8 @@ describe('Item Management Integration Tests', () => {
     it('[ITM-C0010] should create a new item successfully as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 
-      const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Test Item' })
-        .expect(200);
+      const response = await expect200
+        .post(`/v1/todo-lists/${list.id}/items`, { content: 'Test Item' }, testUser.token);
 
       expectResponseData(response, {
         listId: list.id,
@@ -73,11 +73,8 @@ describe('Item Management Integration Tests', () => {
         approved: true,
       });
 
-      const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Test Item' })
-        .expect(200);
+      const response = await expect200
+        .post(`/v1/todo-lists/${list.id}/items`, { content: 'Test Item' }, testUser.token);
 
       expectResponseData(response, {
         listId: list.id,
@@ -89,11 +86,8 @@ describe('Item Management Integration Tests', () => {
     it('[ITM-C0030] should require list access', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 
-      await request(app)
-        .post(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${otherUser.token}`)
-        .send({ content: 'Test Item' })
-        .expect(404);
+      await expect404
+        .post(`/v1/todo-lists/${list.id}/items`, { content: 'Test Item' }, otherUser.token);
     });
 
     it('[ITM-C0040] should not allow owner to add items to archived list', async () => {
@@ -103,11 +97,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .post(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Test Item' })
-        .expect(404);
+      await expect404
+        .post(`/v1/todo-lists/${list.id}/items`, { content: 'Test Item' }, testUser.token);
     });
 
     it('[ITM-C0050] should not allow member to add items to archived list', async () => {
@@ -119,11 +110,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .post(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Test Item' })
-        .expect(404);
+      await expect404
+        .post(`/v1/todo-lists/${list.id}/items`, { content: 'Test Item' }, testUser.token);
     });
   });
 
@@ -133,10 +121,8 @@ describe('Item Management Integration Tests', () => {
       const item1 = await createTestItem(list.id, 'Test Item 1');
       const item2 = await createTestItem(list.id, 'Test Item 2');
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items`, testUser.token);
 
       expectListResponse(response, 2, [
         { id: item1.id, content: 'Test Item 1' },
@@ -156,10 +142,8 @@ describe('Item Management Integration Tests', () => {
       const item1 = await createTestItem(list.id, 'Test Item 1');
       const item2 = await createTestItem(list.id, 'Test Item 2');
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items`, testUser.token);
 
       expectListResponse(response, 2, [
         { id: item1.id, content: 'Test Item 1' },
@@ -172,10 +156,8 @@ describe('Item Management Integration Tests', () => {
       await createTestItem(list.id, 'Test Item 1');
       await createTestItem(list.id, 'Test Item 2');
 
-      await request(app)
-        .get(`/v1/todo-lists/${list.id}/items`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .get(`/v1/todo-lists/${list.id}/items`, testUser.token);
     });
   });
 
@@ -184,10 +166,8 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}`, testUser.token);
 
       expectResponseData(response, {
         id: item.id,
@@ -208,10 +188,8 @@ describe('Item Management Integration Tests', () => {
       });
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}`, testUser.token);
 
       expectResponseData(response, {
         id: item.id,
@@ -225,10 +203,8 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}`, testUser.token);
     });
   });
 
@@ -237,11 +213,8 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Updated Item' })
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`, { content: 'Updated Item' }, testUser.token);
 
       expectResponseData(response, {
         id: item.id,
@@ -261,11 +234,8 @@ describe('Item Management Integration Tests', () => {
       });
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Updated Item' })
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`, { content: 'Updated Item' }, testUser.token);
 
       expectResponseData(response, {
         id: item.id,
@@ -278,11 +248,8 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Updated Item' })
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`, { content: 'Updated Item' }, testUser.token);
     });
 
     it('[ITM-U0035] should not allow updating items in archived list', async () => {
@@ -293,11 +260,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Updated Item' })
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`, { content: 'Updated Item' }, testUser.token);
     });
 
     it('[ITM-U0036] should not allow member to update items in archived list', async () => {
@@ -315,11 +279,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ content: 'Updated Item' })
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}`, { content: 'Updated Item' }, testUser.token);
     });
   });
 
@@ -328,10 +289,8 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`, null, testUser.token);
 
       const data = expectResponseData(response, {
         id: item.id,
@@ -350,10 +309,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`, null, testUser.token);
     });
 
     it('[ITM-U0046] should not allow member to complete items in archived list', async () => {
@@ -371,10 +328,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`, null, testUser.token);
     });
 
     it('[ITM-U0050] should mark item as completed as member', async () => {
@@ -388,10 +343,8 @@ describe('Item Management Integration Tests', () => {
       });
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`, null, testUser.token);
 
       const data = expectResponseData(response, {
         id: item.id,
@@ -406,10 +359,8 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`, null, testUser.token);
     });
 
     it('[ITM-U0065] should not allow uncompleting items in archived list', async () => {
@@ -425,10 +376,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`, null, testUser.token);
     });
 
     it('[ITM-U0066] should not allow member to uncomplete items in archived list', async () => {
@@ -451,10 +400,8 @@ describe('Item Management Integration Tests', () => {
         { isArchived: true },
       );
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`, null, testUser.token);
     });
   });
 
@@ -468,10 +415,8 @@ describe('Item Management Integration Tests', () => {
         completedBy: testUser.id,
       });
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`, null, testUser.token);
 
       const data = expectResponseData(response, {
         id: item.id,
@@ -498,10 +443,8 @@ describe('Item Management Integration Tests', () => {
         completedBy: otherUser.id,
       });
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`, null, testUser.token);
 
       const data = expectResponseData(response, {
         id: item.id,
@@ -521,10 +464,8 @@ describe('Item Management Integration Tests', () => {
         completedBy: otherUser.id,
       });
 
-      await request(app)
-        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`, null, testUser.token);
     });
   });
 });

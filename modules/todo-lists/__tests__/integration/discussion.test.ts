@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { Express } from 'express';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
@@ -11,6 +10,8 @@ import './../../list.exposed.routes';
 import './../../item.exposed.routes';
 
 // Import test helpers
+import { RequestHelper } from '../helpers/request';
+
 import {
   createTestUser,
   createTestList,
@@ -22,6 +23,9 @@ import {
 
 describe('Discussion Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
+  const expect200 = new RequestHelper(() => app, 200);
+  const expect401 = new RequestHelper(() => app, 401);
+  const expect404 = new RequestHelper(() => app, 404);
 
   let app: Express;
   let testUser: { id: string; token: string };
@@ -52,10 +56,8 @@ describe('Discussion Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`, testUser.token);
 
       expectResponseData(response, { itemId: item.id });
     });
@@ -66,10 +68,8 @@ describe('Discussion Management Integration Tests', () => {
       await invitations.updateById(invitation.id, { status: 'accepted' });
       const item = await createTestItem(list.id, 'Test Item');
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`, testUser.token);
 
       expectResponseData(response, { itemId: item.id });
     });
@@ -79,10 +79,8 @@ describe('Discussion Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`, testUser.token);
 
       expectResponseData(response, {
         id: discussion.id,
@@ -97,10 +95,8 @@ describe('Discussion Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`, testUser.token);
 
       expectResponseData(response, {
         id: discussion.id,
@@ -112,9 +108,8 @@ describe('Discussion Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
-      await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
-        .expect(401);
+      await expect401
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`);
     });
 
     it('[DSC-R0060] should not reveal discussion existence to non-members', async () => {
@@ -122,10 +117,8 @@ describe('Discussion Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
       await discussions.create({ itemId: item.id });
 
-      await request(app)
-        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .get(`/v1/todo-lists/${list.id}/items/${item.id}/discussion`, testUser.token);
     });
   });
 
@@ -147,10 +140,8 @@ describe('Discussion Management Integration Tests', () => {
         content: 'Test Message 2',
       });
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`, testUser.token);
 
       expectListResponse(response, 2, [
         { id: message1.id, content: 'Test Message 1' },
@@ -177,10 +168,8 @@ describe('Discussion Management Integration Tests', () => {
         content: 'Test Message 2',
       });
 
-      const response = await request(app)
-        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`, testUser.token);
 
       expectListResponse(response, 2, [
         { id: message1.id, content: 'Test Message 1' },
@@ -199,10 +188,8 @@ describe('Discussion Management Integration Tests', () => {
         content: 'Test Message',
       });
 
-      await request(app)
-        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`, testUser.token);
     });
 
     it('[DSC-R0100] should require authentication', async () => {
@@ -210,9 +197,8 @@ describe('Discussion Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
 
-      await request(app)
-        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`)
-        .expect(401);
+      await expect401
+        .get(`/v1/todo-lists/discussions/${discussion.id}/messages`);
     });
   });
 });

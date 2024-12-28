@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { Express } from 'express';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
@@ -10,6 +9,8 @@ import './../../invitation.exposed.routes';
 import './../../list.exposed.routes';
 
 // Import test helpers
+import { RequestHelper } from '../helpers/request';
+
 import {
   createTestUser,
   createTestList,
@@ -20,6 +21,8 @@ import {
 
 describe('Invitation Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
+  const expect200 = new RequestHelper(() => app, 200);
+  const expect404 = new RequestHelper(() => app, 404);
 
   let app: Express;
   let testUser: { id: string; token: string };
@@ -49,11 +52,8 @@ describe('Invitation Management Integration Tests', () => {
     it('[INV-C0010] should create a new invitation successfully', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 
-      const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/invitations`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ inviteeId: otherUser.id })
-        .expect(200);
+      const response = await expect200
+        .post(`/v1/todo-lists/${list.id}/invitations`, { inviteeId: otherUser.id }, testUser.token);
 
       expectResponseData(response, {
         listId: list.id,
@@ -67,11 +67,8 @@ describe('Invitation Management Integration Tests', () => {
     it('[INV-C0020] should require list ownership', async () => {
       const list = await createTestList(otherUser.id, 'Test List');
 
-      await request(app)
-        .post(`/v1/todo-lists/${list.id}/invitations`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .send({ inviteeId: otherUser.id })
-        .expect(404);
+      await expect404
+        .post(`/v1/todo-lists/${list.id}/invitations`, { inviteeId: otherUser.id }, testUser.token);
     });
   });
 
@@ -80,10 +77,8 @@ describe('Invitation Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       await createTestInvitation(list.id, testUser.id, otherUser.id);
 
-      const response = await request(app)
-        .get('/v1/todo-lists/invitations/my/pending')
-        .set('Authorization', `Bearer ${otherUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get('/v1/todo-lists/invitations/my/pending', otherUser.token);
 
       expectListResponse(response, 1, [{
         listId: list.id,
@@ -100,10 +95,8 @@ describe('Invitation Management Integration Tests', () => {
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
 
-      const response = await request(app)
-        .get('/v1/todo-lists/invitations/my/accepted')
-        .set('Authorization', `Bearer ${otherUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .get('/v1/todo-lists/invitations/my/accepted', otherUser.token);
 
       expectListResponse(response, 1, [{
         listId: list.id,
@@ -119,10 +112,8 @@ describe('Invitation Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/invitations/${invitation.id}/accept`)
-        .set('Authorization', `Bearer ${otherUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/invitations/${invitation.id}/accept`, null, otherUser.token);
 
       expectResponseData(response, {
         listId: list.id,
@@ -136,10 +127,8 @@ describe('Invitation Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
-      await request(app)
-        .patch(`/v1/todo-lists/invitations/${invitation.id}/accept`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/invitations/${invitation.id}/accept`, null, testUser.token);
     });
   });
 
@@ -148,10 +137,8 @@ describe('Invitation Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
-      const response = await request(app)
-        .patch(`/v1/todo-lists/invitations/${invitation.id}/reject`)
-        .set('Authorization', `Bearer ${otherUser.token}`)
-        .expect(200);
+      const response = await expect200
+        .patch(`/v1/todo-lists/invitations/${invitation.id}/reject`, null, otherUser.token);
 
       expectResponseData(response, {
         listId: list.id,
@@ -165,10 +152,8 @@ describe('Invitation Management Integration Tests', () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
-      await request(app)
-        .patch(`/v1/todo-lists/invitations/${invitation.id}/reject`)
-        .set('Authorization', `Bearer ${testUser.token}`)
-        .expect(404);
+      await expect404
+        .patch(`/v1/todo-lists/invitations/${invitation.id}/reject`, null, testUser.token);
     });
   });
 });
