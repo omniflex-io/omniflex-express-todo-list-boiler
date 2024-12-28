@@ -6,7 +6,7 @@ import { ExposedRouter } from '@/servers';
 import { tryValidateBody } from '@omniflex/infra-express/helpers/joi';
 
 import { TInvitation } from './models';
-import { invitations } from './todo.repo';
+import { invitations, invitationCodes } from './todo.repo';
 import { createInvitationSchema, createInvitationCodeSchema } from './http.schemas';
 import {
   validateInvitationAcceptance,
@@ -43,21 +43,6 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
         inviteeId,
         approved: true,
         status: 'pending',
-        inviterId: this.user.id,
-      });
-    });
-  }
-
-  tryCreateInvitationCode() {
-    return this.tryAction(async () => {
-      const { listId } = this.req.params;
-      const { autoApprove } = this.req.body;
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-      return super.tryCreate({
-        listId,
-        expiresAt,
-        autoApprove,
         inviterId: this.user.id,
       });
     });
@@ -122,6 +107,29 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 
   tryGetOne() {
     return this.tryAction(() => this.respondRequired('invitation'));
+  }
+}
+
+class InvitationCodeController extends BaseEntitiesController<TInvitation> {
+  constructor(req, res, next) {
+    super(req, res, next, invitationCodes, { idParamName: 'invitationCodeId' });
+  }
+
+  static create = getControllerCreator(InvitationCodeController);
+
+  tryCreate() {
+    return this.tryAction(async () => {
+      const { listId } = this.req.params;
+      const { autoApprove } = this.req.body;
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      return super.tryCreate({
+        listId,
+        expiresAt,
+        autoApprove,
+        inviterId: this.user.id,
+      });
+    });
   }
 }
 
@@ -191,7 +199,7 @@ router
     auth.requireExposed,
     byListId,
     validateListOwner,
-    InvitationController.create(controller => controller.tryCreateInvitationCode()))
+    InvitationCodeController.create(controller => controller.tryCreate()))
 
   .post('/:listId/invitations/codes/:invitationCodeId',
     // #swagger.summary = 'Join a list using an invitation code'
