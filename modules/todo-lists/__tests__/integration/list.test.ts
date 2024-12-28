@@ -230,6 +230,29 @@ describe('List Management Integration Tests', () => {
       expect(response.body).toHaveProperty('data');
       expect(response.body.data).toHaveLength(0);
     });
+
+    it('[LIST-R0100] should list archived lists as a member', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
+      await invitations.updateById(invitation.id, { status: 'accepted' });
+      await lists.updateMany(
+        { id: list.id },
+        { isArchived: true },
+      );
+
+      const response = await request(app)
+        .get('/v1/todo-lists/archived')
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(200);
+
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0]).toMatchObject({
+        id: list.id,
+        ownerId: otherUser.id,
+        isArchived: true,
+      });
+    });
   });
 
   describe('PATCH /v1/todo-lists/:id/archive', () => {
