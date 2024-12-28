@@ -11,16 +11,12 @@ const validateInviteeAccess = RequiredDbEntries.firstMatch(
   true,
 );
 
-const validateInvitationAccess = RequiredDbEntries.firstMatch(
+const validateInvitationAccess = RequiredDbEntries.eitherExists(
   invitations,
-  (req, res) => ({
-    id: req.params.invitationId,
-    $or: [
-      { inviterId: res.locals.user.id },
-      { inviteeId: res.locals.user.id },
-    ],
-  }),
-  true,
+  (req, res) => [
+    { id: req.params.invitationId, inviterId: res.locals.user.id },
+    { id: req.params.invitationId, inviteeId: res.locals.user.id },
+  ],
 );
 
 const validateInvitationCode = RequiredDbEntries.firstMatch(

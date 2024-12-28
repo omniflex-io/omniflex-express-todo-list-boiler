@@ -55,9 +55,10 @@ export const validateItemAccess = [
   RequiredDbEntries.firstMatch(
     invitations,
     (_, res) => ({
-      listId: res.locals.required.list.id,
-      inviteeId: res.locals.user.id,
+      approved: true,
       status: 'accepted',
+      inviteeId: res.locals.user.id,
+      listId: res.locals.required.list.id,
     }),
     true,
   ),
