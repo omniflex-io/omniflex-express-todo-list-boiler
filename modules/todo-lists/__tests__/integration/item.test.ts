@@ -10,7 +10,14 @@ import './../../item.exposed.routes';
 import './../../list.exposed.routes';
 
 // Import test helpers
-import { createTestUser, createTestList, createTestItem, createTestInvitation } from '../helpers/setup';
+import {
+  createTestUser,
+  createTestList,
+  createTestItem,
+  createTestInvitation,
+  expectResponseData,
+  expectListResponse,
+} from '../helpers/setup';
 
 describe('Item Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
@@ -49,8 +56,7 @@ describe('Item Management Integration Tests', () => {
         .send({ content: 'Test Item' })
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         listId: list.id,
         content: 'Test Item',
         isCompleted: false,
@@ -73,8 +79,7 @@ describe('Item Management Integration Tests', () => {
         .send({ content: 'Test Item' })
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         listId: list.id,
         content: 'Test Item',
         isCompleted: false,
@@ -125,18 +130,18 @@ describe('Item Management Integration Tests', () => {
   describe('GET /v1/todo-lists/:listId/items', () => {
     it('[ITM-R0010] should list all items in a list as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
-      await createTestItem(list.id, 'Test Item 1');
-      await createTestItem(list.id, 'Test Item 2');
+      const item1 = await createTestItem(list.id, 'Test Item 1');
+      const item2 = await createTestItem(list.id, 'Test Item 2');
 
       const response = await request(app)
         .get(`/v1/todo-lists/${list.id}/items`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data[0]).toHaveProperty('content', 'Test Item 1');
-      expect(response.body.data[1]).toHaveProperty('content', 'Test Item 2');
+      expectListResponse(response, 2, [
+        { id: item1.id, content: 'Test Item 1' },
+        { id: item2.id, content: 'Test Item 2' },
+      ]);
     });
 
     it('[ITM-R0020] should list all items in a list as member', async () => {
@@ -148,18 +153,18 @@ describe('Item Management Integration Tests', () => {
         status: 'accepted',
         approved: true,
       });
-      await createTestItem(list.id, 'Test Item 1');
-      await createTestItem(list.id, 'Test Item 2');
+      const item1 = await createTestItem(list.id, 'Test Item 1');
+      const item2 = await createTestItem(list.id, 'Test Item 2');
 
       const response = await request(app)
         .get(`/v1/todo-lists/${list.id}/items`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data[0]).toHaveProperty('content', 'Test Item 1');
-      expect(response.body.data[1]).toHaveProperty('content', 'Test Item 2');
+      expectListResponse(response, 2, [
+        { id: item1.id, content: 'Test Item 1' },
+        { id: item2.id, content: 'Test Item 2' },
+      ]);
     });
 
     it('[ITM-R0030] should not reveal items to non-members', async () => {
@@ -184,8 +189,7 @@ describe('Item Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: item.id,
         listId: list.id,
         content: 'Test Item',
@@ -209,8 +213,7 @@ describe('Item Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: item.id,
         listId: list.id,
         content: 'Test Item',
@@ -240,8 +243,7 @@ describe('Item Management Integration Tests', () => {
         .send({ content: 'Updated Item' })
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: item.id,
         listId: list.id,
         content: 'Updated Item',
@@ -265,8 +267,7 @@ describe('Item Management Integration Tests', () => {
         .send({ content: 'Updated Item' })
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: item.id,
         listId: list.id,
         content: 'Updated Item',
@@ -332,14 +333,13 @@ describe('Item Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      const data = expectResponseData(response, {
         id: item.id,
         listId: list.id,
         isCompleted: true,
         completedBy: testUser.id,
       });
-      expect(response.body.data).toHaveProperty('completedAt');
+      expect(data).toHaveProperty('completedAt');
     });
 
     it('[ITM-U0045] should not allow completing items in archived list', async () => {
@@ -393,14 +393,13 @@ describe('Item Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      const data = expectResponseData(response, {
         id: item.id,
         listId: list.id,
         isCompleted: true,
         completedBy: testUser.id,
       });
-      expect(response.body.data).toHaveProperty('completedAt');
+      expect(data).toHaveProperty('completedAt');
     });
 
     it('[ITM-U0060] should not allow non-members to complete items', async () => {
@@ -474,14 +473,13 @@ describe('Item Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      const data = expectResponseData(response, {
         id: item.id,
         listId: list.id,
         isCompleted: false,
       });
-      expect(response.body.data.completedAt).toBeFalsy();
-      expect(response.body.data.completedBy).toBeFalsy();
+      expect(data.completedAt).toBeFalsy();
+      expect(data.completedBy).toBeFalsy();
     });
 
     it('[ITM-U0080] should mark item as uncompleted as member', async () => {
@@ -505,14 +503,13 @@ describe('Item Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      const data = expectResponseData(response, {
         id: item.id,
         listId: list.id,
         isCompleted: false,
       });
-      expect(response.body.data.completedAt).toBeFalsy();
-      expect(response.body.data.completedBy).toBeFalsy();
+      expect(data.completedAt).toBeFalsy();
+      expect(data.completedBy).toBeFalsy();
     });
 
     it('[ITM-U0090] should not allow non-members to uncomplete items', async () => {
