@@ -5,7 +5,7 @@ import { auth } from '@/middlewares/auth';
 import { ExposedRouter } from '@/servers';
 
 import { TDiscussion } from './models';
-import { discussions, items, messages } from './todo.repo';
+import { discussions, messages } from './todo.repo';
 import {
   byItemId,
   validateItemAccess,
@@ -19,7 +19,7 @@ import {
 
 class DiscussionController extends BaseEntitiesController<TDiscussion> {
   constructor(req, res, next) {
-    super(req, res, next, discussions);
+    super(req, res, next, discussions, { idParamName: 'discussionId' });
   }
 
   static create = getControllerCreator(DiscussionController);
@@ -39,18 +39,8 @@ class DiscussionController extends BaseEntitiesController<TDiscussion> {
 
   async tryGetMessages() {
     return this.tryAction(async () => {
-      const { id } = this.req.params;
-      const discussion = await this.repository.findOne({ id });
-      if (!discussion) {
-        return this.respondMany([]);
-      }
-
-      const item = await items.findOne({ id: discussion.itemId });
-      if (!item) {
-        return this.respondMany([]);
-      }
-
-      const messageList = await messages.find({ discussionId: id });
+      const { discussion } = this.res.locals.required;
+      const messageList = await messages.find({ discussionId: discussion.id });
       return this.respondMany(messageList);
     });
   }
@@ -69,10 +59,10 @@ router
     byItemId,
     DiscussionController.create(controller => controller.tryGetOrCreate()))
 
-  .get('/discussions/:id/messages',
+  .get('/discussions/:discussionId/messages',
     // #swagger.summary = 'Get all messages in a discussion'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the discussion' }
+    // #swagger.parameters['discussionId'] = { description: 'UUID of the discussion' }
 
     auth.requireExposed,
     validateDiscussionAccess,

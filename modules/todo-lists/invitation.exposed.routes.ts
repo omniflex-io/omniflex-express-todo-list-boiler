@@ -28,7 +28,7 @@ import {
 
 class InvitationController extends BaseEntitiesController<TInvitation> {
   constructor(req, res, next) {
-    super(req, res, next, invitations);
+    super(req, res, next, invitations, { idParamName: 'invitationId' });
   }
 
   static create = getControllerCreator(InvitationController);
@@ -160,10 +160,10 @@ router
     validateListInvitationsAccess,
     InvitationController.create(controller => controller.tryListInvitationCodes()))
 
-  .get('/invitations/:id',
+  .get('/invitations/:invitationId',
     // #swagger.summary = 'Get a specific invitation (owner, inviter, or invitee only)'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
+    // #swagger.parameters['invitationId'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
     validateInvitationViewAccess,
@@ -193,38 +193,38 @@ router
     validateListOwner,
     InvitationController.create(controller => controller.tryCreateInvitationCode()))
 
-  .post('/:listId/invitations/codes/:id',
+  .post('/:listId/invitations/codes/:invitationCodeId',
     // #swagger.summary = 'Join a list using an invitation code'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
-    // #swagger.parameters['id'] = { description: 'UUID of the invitation code' }
+    // #swagger.parameters['invitationCodeId'] = { description: 'UUID of the invitation code' }
 
     auth.requireExposed,
     validateInvitationCodeJoin,
     InvitationController.create(controller => controller.tryJoinByInvitationCode()))
 
-  .patch('/invitations/:id/accept',
+  .patch('/invitations/:invitationId/accept',
     // #swagger.summary = 'Accept an invitation'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
+    // #swagger.parameters['invitationId'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
     validateInvitationAcceptance,
     InvitationController.create(controller => controller.tryAcceptInvitation()))
 
-  .patch('/invitations/:id/reject',
+  .patch('/invitations/:invitationId/reject',
     // #swagger.summary = 'Reject an invitation'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
+    // #swagger.parameters['invitationId'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
     validateInvitationRejection,
     InvitationController.create(controller => controller.tryRejectInvitation()))
 
-  .patch('/invitations/:id/approve',
+  .patch('/invitations/:invitationId/approve',
     // #swagger.summary = 'Approve an invitation'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the invitation' }
+    // #swagger.parameters['invitationId'] = { description: 'UUID of the invitation' }
 
     auth.requireExposed,
     validateInvitationApproval,

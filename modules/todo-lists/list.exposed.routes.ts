@@ -20,7 +20,7 @@ import {
 
 class ListController extends BaseEntitiesController<TList> {
   constructor(req, res, next) {
-    super(req, res, next, lists);
+    super(req, res, next, lists, { idParamName: 'listId' });
   }
 
   static create = getControllerCreator(ListController);
@@ -142,19 +142,19 @@ router
     auth.requireExposed,
     ListController.create(controller => controller.tryListArchived()))
 
-  .get('/:id',
+  .get('/:listId',
     // #swagger.summary = 'Get a list by ID'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the list' }
+    // #swagger.parameters['listId'] = { description: 'UUID of the list' }
 
     auth.requireExposed,
     validateListAccess,
     ListController.create(controller => controller.tryGetOne()))
 
-  .patch('/:id/archive',
+  .patch('/:listId/archive',
     // #swagger.summary = 'Archive a list'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the list' }
+    // #swagger.parameters['listId'] = { description: 'UUID of the list' }
 
     auth.requireExposed,
     validateListOwner,

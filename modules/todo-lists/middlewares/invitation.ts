@@ -5,7 +5,7 @@ import { invitations, invitationCodes, lists } from '../todo.repo';
 const validateInviteeAccess = RequiredDbEntries.firstMatch(
   invitations,
   (req, res) => ({
-    id: req.params.id,
+    id: req.params.invitationId,
     inviteeId: res.locals.user.id,
   }),
   true,
@@ -14,7 +14,7 @@ const validateInviteeAccess = RequiredDbEntries.firstMatch(
 const validateInvitationAccess = RequiredDbEntries.firstMatch(
   invitations,
   (req, res) => ({
-    id: req.params.id,
+    id: req.params.invitationId,
     $or: [
       { inviterId: res.locals.user.id },
       { inviteeId: res.locals.user.id },
@@ -26,7 +26,7 @@ const validateInvitationAccess = RequiredDbEntries.firstMatch(
 const validateInvitationCode = RequiredDbEntries.firstMatch(
   invitationCodes,
   (req) => ({
-    id: req.params.id,
+    id: req.params.invitationCodeId,
     listId: req.params.listId,
     expiresAt: { $gt: new Date() },
   }),
@@ -34,17 +34,17 @@ const validateInvitationCode = RequiredDbEntries.firstMatch(
 );
 
 export const validateInvitationAcceptance = [
-  RequiredDbEntries.byPathId(invitations, 'invitation'),
+  RequiredDbEntries.byPathId(invitations, 'invitation', { fieldName: 'invitationId' }),
   validateInviteeAccess,
 ];
 
 export const validateInvitationRejection = [
-  RequiredDbEntries.byPathId(invitations, 'invitation'),
+  RequiredDbEntries.byPathId(invitations, 'invitation', { fieldName: 'invitationId' }),
   validateInviteeAccess,
 ];
 
 export const validateInvitationApproval = [
-  RequiredDbEntries.byPathId(invitations, 'invitation'),
+  RequiredDbEntries.byPathId(invitations, 'invitation', { fieldName: 'invitationId' }),
   RequiredDbEntries.firstMatch(
     lists,
     async (_, res) => {
@@ -76,6 +76,6 @@ export const validateListInvitationsAccess = [
 ];
 
 export const validateInvitationViewAccess = [
-  RequiredDbEntries.byPathId(invitations, 'invitation'),
+  RequiredDbEntries.byPathId(invitations, 'invitation', { fieldName: 'invitationId' }),
   validateInvitationAccess,
 ];

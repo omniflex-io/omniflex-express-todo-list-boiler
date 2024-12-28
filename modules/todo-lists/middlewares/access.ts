@@ -1,16 +1,8 @@
-import { Response } from 'express';
-import { errors } from '@omniflex/core';
-import { ExpressUtils, RequiredDbEntries } from '@omniflex/infra-express';
+import { RequiredDbEntries } from '@omniflex/infra-express';
 
 import { lists, invitations, items, discussions } from '../todo.repo';
 
-const getInvitationQuery = (listId: string, res: Response) => ({
-  listId,
-  status: 'accepted',
-  inviteeId: res.locals.user.id,
-});
-
-export const byListId = RequiredDbEntries.byId(lists, req => req.params.listId, true);
+export const byListId = RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' });
 
 export const byItemId = RequiredDbEntries.firstMatch(
   items,
@@ -21,37 +13,49 @@ export const byItemId = RequiredDbEntries.firstMatch(
   'item',
 );
 
-export const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion');
+export const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion', { fieldName: 'discussionId' });
 
-export const validateListOwner = RequiredDbEntries.firstMatch(
-  lists,
-  (req, res) => ({
-    id: req.params.id || req.params.listId,
-    ownerId: res.locals.user.id,
-  }),
-  true,
-);
+export const validateListOwner = [
+  byListId,
+  RequiredDbEntries.firstMatch(
+    lists,
+    (_, res) => ({
+      id: res.locals.required.list.id,
+      ownerId: res.locals.user.id,
+    }),
+    true,
+  ),
+];
 
 export const validateListAccess = [
-  RequiredDbEntries.byPathId(lists, 'list'),
+  byListId,
   RequiredDbEntries.firstMatch(
     invitations,
-    (req, res) => getInvitationQuery(req.params.id || req.params.listId, res),
+    (_, res) => ({
+      listId: res.locals.required.list.id,
+      inviteeId: res.locals.user.id,
+      status: 'accepted',
+      approved: true,
+    }),
     true,
   ),
 ];
 
 export const validateItemAccess = [
-  RequiredDbEntries.byPathId(lists, 'list', { fieldName: 'listId' }),
+  byListId,
   RequiredDbEntries.firstMatch(
     invitations,
-    (req, res) => getInvitationQuery(req.params.listId, res),
+    (_, res) => ({
+      listId: res.locals.required.list.id,
+      inviteeId: res.locals.user.id,
+      status: 'accepted',
+    }),
     true,
   ),
 ];
 
 export const validateDiscussionAccess = [
-  RequiredDbEntries.byPathId(discussions, 'discussion'),
+  byDiscussionId,
   RequiredDbEntries.firstMatch(
     items,
     async (_, res) => {
@@ -60,20 +64,16 @@ export const validateDiscussionAccess = [
     },
     'item',
   ),
-  ExpressUtils.tryAction(
+  RequiredDbEntries.firstMatch(
+    invitations,
     async (_, res) => {
       const item = res.locals.required.item;
-      const userId = res.locals.user.id;
-
-      const invitation = await invitations.exists({
+      return {
         listId: item.listId,
-        inviteeId: userId,
+        inviteeId: res.locals.user.id,
         status: 'accepted',
-      });
-
-      if (!invitation) {
-        throw errors.notFound();
-      }
+      };
     },
+    true,
   ),
 ];

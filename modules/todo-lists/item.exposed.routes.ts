@@ -20,7 +20,7 @@ import {
 
 class ItemController extends BaseEntitiesController<TItem> {
   constructor(req, res, next) {
-    super(req, res, next, items);
+    super(req, res, next, items, { idParamName: 'itemId' });
   }
 
   static create = getControllerCreator(ItemController);
@@ -76,11 +76,11 @@ router
     validateItemAccess,
     ItemController.create(controller => controller.tryListAll()))
 
-  .get('/:listId/items/:id',
+  .get('/:listId/items/:itemId',
     // #swagger.summary = 'Get a specific todo item'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
-    // #swagger.parameters['id'] = { description: 'UUID of the todo item' }
+    // #swagger.parameters['itemId'] = { description: 'UUID of the todo item' }
 
     auth.requireExposed,
     validateItemAccess,
@@ -97,11 +97,11 @@ router
     validateItemAccess,
     ItemController.create(controller => controller.tryCreate()))
 
-  .patch('/:listId/items/:id',
-    // #swagger.summary = 'Update a todo item content'
+  .patch('/:listId/items/:itemId',
+    // #swagger.summary = 'Update a todo item'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
-    // #swagger.parameters['id'] = { description: 'UUID of the todo item' }
+    // #swagger.parameters['itemId'] = { description: 'UUID of the todo item' }
     // #swagger.jsonBody = required|components/schemas/appModule/toDoLists/updateItem
 
     tryValidateBody(updateItemSchema),
@@ -109,21 +109,21 @@ router
     validateItemAccess,
     ItemController.create(controller => controller.tryUpdateContent()))
 
-  .post('/:listId/items/:id/complete',
+  .patch('/:listId/items/:itemId/complete',
     // #swagger.summary = 'Mark a todo item as completed'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
-    // #swagger.parameters['id'] = { description: 'UUID of the todo item' }
+    // #swagger.parameters['itemId'] = { description: 'UUID of the todo item' }
 
     auth.requireExposed,
     validateItemAccess,
     ItemController.create(controller => controller.tryComplete()))
 
-  .post('/:listId/items/:id/uncomplete',
-    // #swagger.summary = 'Mark a todo item as uncompleted'
+  .patch('/:listId/items/:itemId/uncomplete',
+    // #swagger.summary = 'Mark a todo item as not completed'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['listId'] = { description: 'UUID of the todo list' }
-    // #swagger.parameters['id'] = { description: 'UUID of the todo item' }
+    // #swagger.parameters['itemId'] = { description: 'UUID of the todo item' }
 
     auth.requireExposed,
     validateItemAccess,

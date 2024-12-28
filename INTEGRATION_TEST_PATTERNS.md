@@ -401,3 +401,48 @@ describe('Cross-Server Tests', () => {
      });
    });
    ```
+
+## Test Case Numbering Pattern
+
+1. Test Case ID Format:
+   ```typescript
+   // Format: [MODULE-TYPE0000]
+   // - MODULE: Uppercase module name (e.g., LIST, ITEM)
+   // - TYPE: Single character operation type
+   //   - C: Create
+   //   - R: Read
+   //   - U: Update
+   //   - D: Delete
+   //   - A: Archive
+   // - 0000: Four-digit number starting at 0010, incrementing by 10
+
+   // Examples:
+   it('[LIST-C0010] should create a new list successfully', async () => {});
+   it('[LIST-R0010] should list user\'s lists', async () => {});
+   it('[LIST-A0010] should archive a list as owner', async () => {});
+   ```
+
+2. Numbering Rules:
+   - Start at 0010 for each operation type
+   - Increment by 10 for each test case
+   - Reset to 0010 when changing operation type
+   - Keep numbers sequential within each operation type
+
+3. Example Test Suite Structure:
+   ```typescript
+   describe('POST /v1/todo-lists', () => {
+     it('[LIST-C0010] should create successfully', async () => {});
+     it('[LIST-C0020] should require auth', async () => {});
+   });
+
+   describe('GET /v1/todo-lists', () => {
+     it('[LIST-R0010] should list items', async () => {});
+     it('[LIST-R0020] should handle empty', async () => {});
+   });
+   ```
+
+4. Benefits:
+   - Easy to locate tests by ID
+   - Clear operation categorization
+   - Simple to add new tests between existing ones
+   - Consistent across all test files

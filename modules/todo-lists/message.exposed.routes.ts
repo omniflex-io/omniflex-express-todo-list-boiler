@@ -20,7 +20,7 @@ import {
 
 class MessageController extends BaseEntitiesController<TMessage> {
   constructor(req, res, next) {
-    super(req, res, next, messages);
+    super(req, res, next, messages, { idParamName: 'messageId' });
   }
 
   static create = getControllerCreator(MessageController);
@@ -47,10 +47,10 @@ class MessageController extends BaseEntitiesController<TMessage> {
 const router = ExposedRouter('/v1/todo-lists');
 
 router
-  .post('/discussions/:id/messages',
+  .post('/discussions/:discussionId/messages',
     // #swagger.summary = 'Add a message to discussion'
     // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.parameters['id'] = { description: 'UUID of the discussion' }
+    // #swagger.parameters['discussionId'] = { description: 'UUID of the discussion' }
     // #swagger.jsonBody = required|components/schemas/appModule/toDoLists/createMessage
 
     tryValidateBody(createMessageSchema),

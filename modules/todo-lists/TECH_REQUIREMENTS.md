@@ -75,7 +75,7 @@ interface TDiscussion {
 interface TMessage {
   id: string;
   discussionId: string;
-  authorId: string;
+  senderId: string;
   content: string;
   createdAt: Date;
   updatedAt: Date;
