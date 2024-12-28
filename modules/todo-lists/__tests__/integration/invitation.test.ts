@@ -271,6 +271,7 @@ describe('Invitation Management Integration Tests', () => {
         inviterId: testUser.id,
         inviteeId: otherUser.id,
         status: 'rejected',
+        approved: false,
       });
     });
   });
