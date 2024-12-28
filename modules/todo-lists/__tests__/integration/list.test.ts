@@ -10,7 +10,12 @@ import './../../list.exposed.routes';
 import './../../invitation.exposed.routes';
 
 // Import test helpers
-import { createTestUser, resetTestData } from '../helpers/setup';
+import {
+  createTestUser,
+  createTestList,
+  createTestInvitation,
+  resetTestData,
+} from '../helpers/setup';
 
 describe('List Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
@@ -40,7 +45,7 @@ describe('List Management Integration Tests', () => {
   });
 
   describe('POST /v1/todo-lists', () => {
-    it('should create a new list successfully', async () => {
+    it('[LIST-C0010] should create a new list successfully', async () => {
       const listData = {
         name: 'New Test List',
       };
@@ -72,7 +77,7 @@ describe('List Management Integration Tests', () => {
       });
     });
 
-    it('should require authentication', async () => {
+    it('[LIST-C0020] should require authentication', async () => {
       const listData = {
         name: 'New Test List',
       };
@@ -85,34 +90,9 @@ describe('List Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists', () => {
-    it('should list user\'s lists', async () => {
-      const list1 = await lists.create({
-        ownerId: testUser.id,
-        name: 'List 1',
-        isArchived: false,
-      });
-
-      const list2 = await lists.create({
-        ownerId: testUser.id,
-        name: 'List 2',
-        isArchived: false,
-      });
-
-      await invitations.create({
-        listId: list1.id,
-        inviterId: testUser.id,
-        inviteeId: testUser.id,
-        status: 'accepted',
-        approved: true,
-      });
-
-      await invitations.create({
-        listId: list2.id,
-        inviterId: testUser.id,
-        inviteeId: testUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0010] should list user\'s lists', async () => {
+      const list1 = await createTestList(testUser.id, 'List 1');
+      const list2 = await createTestList(testUser.id, 'List 2');
 
       const response = await request(app)
         .get('/v1/todo-lists')
@@ -129,20 +109,12 @@ describe('List Management Integration Tests', () => {
       );
     });
 
-    it('should not list archived lists', async () => {
-      const archivedList = await lists.create({
-        ownerId: testUser.id,
-        name: 'Archived List',
-        isArchived: true,
-      });
-
-      await invitations.create({
-        listId: archivedList.id,
-        inviterId: testUser.id,
-        inviteeId: testUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0020] should not list archived lists', async () => {
+      const archivedList = await createTestList(testUser.id, 'Archived List');
+      await lists.updateMany(
+        { id: archivedList.id },
+        { isArchived: true },
+      );
 
       const response = await request(app)
         .get('/v1/todo-lists')
@@ -153,20 +125,8 @@ describe('List Management Integration Tests', () => {
       expect(response.body.data).toHaveLength(0);
     });
 
-    it('should not list other users\' lists', async () => {
-      const otherList = await lists.create({
-        ownerId: otherUser.id,
-        name: 'Other User\'s List',
-        isArchived: false,
-      });
-
-      await invitations.create({
-        listId: otherList.id,
-        inviterId: otherUser.id,
-        inviteeId: otherUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0030] should not list other users\' lists', async () => {
+      await createTestList(otherUser.id, 'Other User\'s List');
 
       const response = await request(app)
         .get('/v1/todo-lists')
@@ -179,20 +139,8 @@ describe('List Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists/:id', () => {
-    it('should get a specific list as owner', async () => {
-      const list = await lists.create({
-        ownerId: testUser.id,
-        name: 'Test List',
-        isArchived: false,
-      });
-
-      await invitations.create({
-        listId: list.id,
-        inviterId: testUser.id,
-        inviteeId: testUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0040] should get a specific list as owner', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
 
       const response = await request(app)
         .get(`/v1/todo-lists/${list.id}`)
@@ -208,20 +156,10 @@ describe('List Management Integration Tests', () => {
       });
     });
 
-    it('should get a specific list as member', async () => {
-      const list = await lists.create({
-        ownerId: otherUser.id,
-        name: 'Other User\'s List',
-        isArchived: false,
-      });
-
-      await invitations.create({
-        listId: list.id,
-        inviterId: otherUser.id,
-        inviteeId: testUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0050] should get a specific list as member', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
+      await invitations.updateById(invitation.id, { status: 'accepted' });
 
       const response = await request(app)
         .get(`/v1/todo-lists/${list.id}`)
@@ -237,35 +175,32 @@ describe('List Management Integration Tests', () => {
       });
     });
 
-    it('should not reveal list existence to non-members', async () => {
-      const otherList = await lists.create({
-        ownerId: otherUser.id,
-        name: 'Other User\'s List',
-        isArchived: false,
-      });
+    it('[LIST-R0060] should not reveal list to non-members', async () => {
+      const otherUser = await createTestUser();
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
 
       await request(app)
-        .get(`/v1/todo-lists/${otherList.id}`)
+        .get(`/v1/todo-lists/${list.id}`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(404);
+    });
+
+    it('[LIST-R0070] should require authentication', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+
+      await request(app)
+        .get(`/v1/todo-lists/${list.id}`)
+        .expect(401);
     });
   });
 
   describe('GET /v1/todo-lists/archived', () => {
-    it('should list user\'s archived lists', async () => {
-      const archivedList = await lists.create({
-        ownerId: testUser.id,
-        name: 'Archived List',
-        isArchived: true,
-      });
-
-      await invitations.create({
-        listId: archivedList.id,
-        inviterId: testUser.id,
-        inviteeId: testUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0080] should list user\'s archived lists', async () => {
+      const archivedList = await createTestList(testUser.id, 'Archived List');
+      await lists.updateMany(
+        { id: archivedList.id },
+        { isArchived: true },
+      );
 
       const response = await request(app)
         .get('/v1/todo-lists/archived')
@@ -280,20 +215,12 @@ describe('List Management Integration Tests', () => {
       });
     });
 
-    it('should not list other users\' archived lists', async () => {
-      const otherArchivedList = await lists.create({
-        ownerId: otherUser.id,
-        name: 'Other User\'s Archived List',
-        isArchived: true,
-      });
-
-      await invitations.create({
-        listId: otherArchivedList.id,
-        inviterId: otherUser.id,
-        inviteeId: otherUser.id,
-        status: 'accepted',
-        approved: true,
-      });
+    it('[LIST-R0090] should not list other users\' archived lists', async () => {
+      const otherArchivedList = await createTestList(otherUser.id, 'Other User\'s Archived List');
+      await lists.updateMany(
+        { id: otherArchivedList.id },
+        { isArchived: true },
+      );
 
       const response = await request(app)
         .get('/v1/todo-lists/archived')
@@ -306,12 +233,8 @@ describe('List Management Integration Tests', () => {
   });
 
   describe('PATCH /v1/todo-lists/:id/archive', () => {
-    it('should archive a list', async () => {
-      const testList = await lists.create({
-        ownerId: testUser.id,
-        name: 'Test List',
-        isArchived: false,
-      });
+    it('[LIST-A0010] should archive a list as owner', async () => {
+      const testList = await createTestList(testUser.id, 'Test List');
 
       const response = await request(app)
         .patch(`/v1/todo-lists/${testList.id}/archive`)
@@ -325,12 +248,19 @@ describe('List Management Integration Tests', () => {
       });
     });
 
-    it('should not reveal list existence to non-owners', async () => {
-      const otherList = await lists.create({
-        ownerId: otherUser.id,
-        name: 'Other User\'s List',
-        isArchived: false,
-      });
+    it('[LIST-A0020] should not allow member to archive list', async () => {
+      const list = await createTestList(otherUser.id, 'Other User\'s List');
+      const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
+      await invitations.updateById(invitation.id, { status: 'accepted' });
+
+      await request(app)
+        .patch(`/v1/todo-lists/${list.id}/archive`)
+        .set('Authorization', `Bearer ${testUser.token}`)
+        .expect(404);
+    });
+
+    it('[LIST-A0030] should not reveal list existence to non-owners', async () => {
+      const otherList = await createTestList(otherUser.id, 'Other User\'s List');
 
       await request(app)
         .patch(`/v1/todo-lists/${otherList.id}/archive`)
