@@ -15,6 +15,8 @@ import {
   createTestList,
   createTestInvitation,
   resetTestData,
+  expectResponseData,
+  expectListResponse,
 } from '../helpers/setup';
 
 describe('List Management Integration Tests', () => {
@@ -56,8 +58,7 @@ describe('List Management Integration Tests', () => {
         .send(listData)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      const data = expectResponseData(response, {
         name: listData.name,
         ownerId: testUser.id,
         isArchived: false,
@@ -68,13 +69,12 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(invitationResponse.body.data).toHaveLength(1);
-      expect(invitationResponse.body.data[0]).toMatchObject({
-        listId: response.body.data.id,
+      expectListResponse(invitationResponse, 1, [{
+        listId: data.id,
         inviterId: testUser.id,
         inviteeId: testUser.id,
         status: 'accepted',
-      });
+      }]);
     });
 
     it('[LIST-C0020] should require authentication', async () => {
@@ -99,14 +99,10 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ id: list1.id }),
-          expect.objectContaining({ id: list2.id }),
-        ]),
-      );
+      expectListResponse(response, 2, [
+        { id: list1.id },
+        { id: list2.id },
+      ]);
     });
 
     it('[LIST-R0020] should not list archived lists', async () => {
@@ -121,8 +117,7 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(0);
+      expectListResponse(response, 0);
     });
 
     it('[LIST-R0030] should not list other users\' lists', async () => {
@@ -133,8 +128,7 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(0);
+      expectListResponse(response, 0);
     });
   });
 
@@ -147,8 +141,7 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: list.id,
         name: list.name,
         ownerId: testUser.id,
@@ -166,8 +159,7 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: list.id,
         name: list.name,
         ownerId: otherUser.id,
@@ -207,12 +199,10 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0]).toMatchObject({
-        id: archivedList.id,
+      expectListResponse(response, 1, [{
         isArchived: true,
-      });
+        id: archivedList.id,
+      }]);
     });
 
     it('[LIST-R0090] should not list other users\' archived lists', async () => {
@@ -227,8 +217,7 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(0);
+      expectListResponse(response, 0);
     });
 
     it('[LIST-R0100] should list archived lists as a member', async () => {
@@ -245,13 +234,11 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0]).toMatchObject({
+      expectListResponse(response, 1, [{
         id: list.id,
-        ownerId: otherUser.id,
         isArchived: true,
-      });
+        ownerId: otherUser.id,
+      }]);
     });
   });
 
@@ -264,8 +251,7 @@ describe('List Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: testList.id,
         isArchived: true,
       });

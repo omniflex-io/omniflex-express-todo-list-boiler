@@ -71,3 +71,43 @@ export const resetTestData = async () => {
   await lists.updateMany({}, { deletedAt: new Date() });
   await invitations.updateMany({}, { deletedAt: new Date() });
 };
+
+/**
+ * Validates the response data structure and optionally checks if it matches the expected object.
+ * @template T Type of the expected data object
+ * @param response The response object from the API call
+ * @param expecting Optional object to match against the response data
+ * @returns The response data
+ */
+export const expectResponseData = <T extends Record<string, any>>(
+  response: any,
+  expecting?: T,
+): T & Record<string, any> => {
+  expect(response.body).toHaveProperty('data');
+  const data = response.body.data;
+
+  if (expecting) {
+    expect(data).toMatchObject(expecting);
+  }
+
+  return data;
+};
+
+export const expectListResponse = <T extends Record<string, any>>(
+  response: any,
+  length: number,
+  expecting?: T[],
+): (T & Record<string, any>)[] => {
+  const data = expectResponseData<T[]>(response);
+  expect(data).toHaveLength(length);
+
+  if (expecting) {
+    expect(data).toEqual(
+      expect.arrayContaining(
+        expecting.map((item) => expect.objectContaining(item)),
+      ),
+    );
+  }
+
+  return data;
+};
