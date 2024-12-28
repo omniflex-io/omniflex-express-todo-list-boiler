@@ -35,6 +35,14 @@ When performing repository operations, always use the base controller methods in
 
    // CORRECT: Use base controller method
    return super.tryCreate(data);
+
+   // INCORRECT: Unnecessary method override when no additional logic
+   tryCreate() {
+     return super.tryCreate(this.req.body);
+   }
+
+   // CORRECT: Don't override tryCreate if only passing req.body
+   // The base controller already handles this case
    ```
 
 2. **List Operations**
@@ -53,6 +61,14 @@ When performing repository operations, always use the base controller methods in
 
    // CORRECT: Use base controller method
    return super.tryUpdate(data);
+
+   // INCORRECT: Unnecessary method override when no additional logic
+   tryUpdate() {
+     return super.tryUpdate(this.req.body);
+   }
+
+   // CORRECT: Don't override tryUpdate if only passing req.body
+   // The base controller already handles this case
    ```
 
 ### Why This Pattern?
@@ -62,12 +78,17 @@ When performing repository operations, always use the base controller methods in
    - Error handling is standardized
    - Pagination is handled automatically
 
-2. **Audit Trail**
+2. **Code Reduction**
+   - Avoid unnecessary method overrides
+   - Base controller handles common cases
+   - Less code to maintain
+
+3. **Audit Trail**
    - Operations are logged consistently
    - Changes are tracked uniformly
    - User context is maintained
 
-3. **Event Emission**
+4. **Event Emission**
    - Events are emitted automatically
    - Subscribers are notified consistently
    - Integration points are maintained
@@ -312,8 +333,12 @@ When creating route files, follow these patterns to maintain consistency and lev
      Controller.create(controller => controller.tryList()));
 
    router.post('/',
+     // #swagger.summary = 'Create a new resource'
+     // #swagger.security = [{"bearerAuth": []}]
+     // #swagger.jsonBody = required|components/schemas/appModule/resource/createResource
      auth.requireExposed,
      tryValidateBody(schema),
+     validateAccess, // Express handles middleware arrays, no spread operator needed
      Controller.create(controller => controller.tryCreate()));
    ```
 
@@ -324,19 +349,53 @@ When creating route files, follow these patterns to maintain consistency and lev
    export default router;
    ```
 
+4. **Swagger Documentation**
+   - Use `#swagger.jsonBody` for request body documentation
+   - Format: `required|components/schemas/appModule/module/schema`
+   ```typescript
+   // INCORRECT: Using requestBody with $ref
+   // #swagger.requestBody = { "$ref": "#/components/schemas/appModule/resource/createResource" }
+
+   // CORRECT: Using jsonBody with direct reference
+   // #swagger.jsonBody = required|components/schemas/appModule/resource/createResource
+   ```
+
+4. **Middleware Arrays**
+   - Express handles middleware arrays directly
+   - No spread operator needed
+   ```typescript
+   // INCORRECT: Using spread operator
+   router.post('/', [
+     auth.requireExposed,
+     ...validateAccess,
+     Controller.create(controller => controller.tryCreate())
+   ]);
+
+   // CORRECT: Pass middleware array directly
+   router.post('/',
+     auth.requireExposed,
+     validateAccess,
+     Controller.create(controller => controller.tryCreate()));
+   ```
+
 ### Why This Pattern?
 
-1. **Immediate Registration**
-   - Routes are registered when defined using router methods
-   - No dependency on exports
-   - Cleaner code structure
+1. **Consistent Documentation**
+   - Swagger comments follow a standard format
+   - Documentation is clear and maintainable
+   - Better developer experience
 
-2. **Auto-Import**
+2. **Clean Middleware Usage**
+   - Express handles arrays natively
+   - No spread operator needed
+   - More readable code
+
+3. **Auto-Import**
    - Files are imported based on naming pattern
    - No need for explicit router exports
    - Consistent with module-based architecture
 
-3. **Type Safety**
+4. **Type Safety**
    - Router types are preserved
    - Path parameters are type-checked
    - Middleware types are maintained

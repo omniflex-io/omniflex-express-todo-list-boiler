@@ -4,7 +4,7 @@ import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
 // Import route handlers
-import '../../membership.staff.routes';
+import '../../level.staff.routes';
 import { initializeDatabase } from '../../models';
 import { membershipLevels } from '../../membership.repo';
 

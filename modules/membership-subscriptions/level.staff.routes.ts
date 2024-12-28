@@ -1,5 +1,6 @@
-// #swagger.file.tags = ['Membership']
-// #swagger.file.basePath = '/v1/membership'
+// #swagger.tags = ['Membership']
+// #swagger.description = 'Staff endpoints for managing membership levels'
+// #swagger.basePath = '/v1/membership'
 
 import { auth } from '@/middlewares/auth';
 import { StaffRouter } from '@/servers';
@@ -33,13 +34,6 @@ class MembershipLevelController extends BaseEntitiesController<TMembershipLevel>
     });
   }
 
-  tryCreate() {
-    return this.tryAction(async () => {
-      const level = await super.tryCreate(this.req.body);
-      this.respondOne(level);
-    });
-  }
-
   tryGetOne() {
     return this.tryAction(() => this.respondRequired('level'));
   }
@@ -50,14 +44,16 @@ const router = StaffRouter('/v1/membership');
 router
   .get('/levels',
     // #swagger.summary = 'List all membership levels'
-    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.description = 'Returns a list of all membership levels'
+    // #swagger.security = [{ "bearerAuth": [] }]
     auth.requireStaff,
     MembershipLevelController.create(controller => controller.tryList()))
 
   .post('/levels',
     // #swagger.summary = 'Create a new membership level'
-    // #swagger.security = [{"bearerAuth": []}]
-    // #swagger.requestBody = { "$ref": "#/components/schemas/appModule/membership/createMembershipLevel" }
+    // #swagger.description = 'Creates a new membership level'
+    // #swagger.security = [{ "bearerAuth": [] }]
+    // #swagger.jsonBody = required|components/schemas/appModule/membership/createMembershipLevel
     auth.requireStaff,
     tryValidateBody(createMembershipLevelSchema),
     validateUniqueMembershipCode,
@@ -66,7 +62,8 @@ router
 
   .get('/levels/:levelId',
     // #swagger.summary = 'Get a membership level by ID'
-    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.description = 'Returns a single membership level by its ID'
+    // #swagger.security = [{ "bearerAuth": [] }]
     // #swagger.parameters['levelId'] = { description: 'UUID of the membership level' }
     auth.requireStaff,
     byLevelId,

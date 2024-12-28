@@ -2,9 +2,10 @@ import { RequiredDbEntries } from '@omniflex/infra-express';
 import { errors } from '@omniflex/core';
 import { Request, Response, NextFunction } from 'express';
 
-import { membershipLevels } from '../membership.repo';
+import { membershipLevels, membershipRecords } from '../membership.repo';
 
 export const byLevelId = RequiredDbEntries.byPathId(membershipLevels, 'level', { fieldName: 'levelId' });
+export const byRecordId = RequiredDbEntries.byPathId(membershipRecords, 'record', { fieldName: 'recordId' });
 
 export const validateUniqueMembershipCode = async (
   req: Request,
@@ -43,3 +44,14 @@ export const validateUniqueMembershipRank = async (
     next(error);
   }
 };
+
+export const validateMembershipLevelExists = [
+  RequiredDbEntries.firstMatch(
+    membershipLevels,
+    req => ({
+      id: req.body.membershipLevelId,
+      deletedAt: null,
+    }),
+    'level',
+  ),
+];
