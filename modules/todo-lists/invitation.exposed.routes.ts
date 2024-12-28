@@ -70,7 +70,7 @@ class InvitationController extends BaseEntitiesController<TInvitation> {
 
       return super.tryCreate({
         listId,
-        status: 'pending',
+        status: 'accepted',
         inviteeId: this.user.id,
         inviterId: code.inviterId,
         approved: code.autoApprove,

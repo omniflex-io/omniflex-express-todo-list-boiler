@@ -378,7 +378,7 @@ describe('Invitation Management Integration Tests', () => {
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
-        status: 'pending',
+        status: 'accepted',
         approved: true,
       });
     });
@@ -399,7 +399,7 @@ describe('Invitation Management Integration Tests', () => {
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
-        status: 'pending',
+        status: 'accepted',
         approved: false,
       });
     });
@@ -419,7 +419,7 @@ describe('Invitation Management Integration Tests', () => {
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
-        status: 'pending',
+        status: 'accepted',
         approved: false,
       });
 
