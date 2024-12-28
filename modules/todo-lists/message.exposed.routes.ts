@@ -9,8 +9,7 @@ import { TMessage } from './models';
 import { messages } from './todo.repo';
 import { createMessageSchema } from './http.schemas';
 import {
-  validateDiscussionAccess,
-  byDiscussionId,
+  validateDiscussionMemberAccess,
 } from './middlewares';
 
 import {
@@ -48,15 +47,14 @@ const router = ExposedRouter('/v1/todo-lists');
 
 router
   .post('/discussions/:discussionId/messages',
-    // #swagger.summary = 'Add a message to discussion'
+    // #swagger.summary = 'Create a new message in a discussion'
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.parameters['discussionId'] = { description: 'UUID of the discussion' }
     // #swagger.jsonBody = required|components/schemas/appModule/toDoLists/createMessage
 
     tryValidateBody(createMessageSchema),
     auth.requireExposed,
-    byDiscussionId,
-    validateDiscussionAccess,
+    validateDiscussionMemberAccess,
     MessageController.create(controller => controller.tryCreate()));
 
 export default router;

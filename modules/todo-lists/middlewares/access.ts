@@ -15,6 +15,31 @@ export const byItemId = RequiredDbEntries.firstMatch(
 
 export const byDiscussionId = RequiredDbEntries.byPathId(discussions, 'discussion', { fieldName: 'discussionId' });
 
+const validateInvitationAccess = (getListId: (res: any) => string) =>
+  RequiredDbEntries.firstMatch(
+    invitations,
+    (_, res) => ({
+      listId: getListId(res),
+      inviteeId: res.locals.user.id,
+      status: 'accepted',
+      approved: true,
+    }),
+    true,
+  );
+
+export const validateDiscussionMemberAccess = [
+  byDiscussionId,
+  RequiredDbEntries.firstMatch(
+    items,
+    async (_, res) => {
+      const discussion = res.locals.required.discussion;
+      return { id: discussion.itemId };
+    },
+    'item',
+  ),
+  validateInvitationAccess(res => res.locals.required.item.listId),
+];
+
 export const validateListOwner = [
   byListId,
   RequiredDbEntries.firstMatch(
@@ -29,16 +54,7 @@ export const validateListOwner = [
 
 export const validateListAccess = [
   byListId,
-  RequiredDbEntries.firstMatch(
-    invitations,
-    (_, res) => ({
-      listId: res.locals.required.list.id,
-      inviteeId: res.locals.user.id,
-      status: 'accepted',
-      approved: true,
-    }),
-    true,
-  ),
+  validateInvitationAccess(res => res.locals.required.list.id),
 ];
 
 export const validateListNotArchived = RequiredDbEntries.firstMatch(
@@ -52,38 +68,5 @@ export const validateListNotArchived = RequiredDbEntries.firstMatch(
 
 export const validateItemAccess = [
   byListId,
-  RequiredDbEntries.firstMatch(
-    invitations,
-    (_, res) => ({
-      approved: true,
-      status: 'accepted',
-      inviteeId: res.locals.user.id,
-      listId: res.locals.required.list.id,
-    }),
-    true,
-  ),
-];
-
-export const validateDiscussionAccess = [
-  byDiscussionId,
-  RequiredDbEntries.firstMatch(
-    items,
-    async (_, res) => {
-      const discussion = res.locals.required.discussion;
-      return { id: discussion.itemId };
-    },
-    'item',
-  ),
-  RequiredDbEntries.firstMatch(
-    invitations,
-    async (_, res) => {
-      const item = res.locals.required.item;
-      return {
-        listId: item.listId,
-        inviteeId: res.locals.user.id,
-        status: 'accepted',
-      };
-    },
-    true,
-  ),
+  validateInvitationAccess(res => res.locals.required.list.id),
 ];
