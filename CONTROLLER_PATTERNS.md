@@ -290,3 +290,80 @@ class ResourceController extends BaseEntitiesController {
    - Test error cases
    - Verify response format
    - Check additional operations 
+
+## Router Pattern
+
+When creating route files, follow these patterns to maintain consistency and leverage the auto-registration functionality:
+
+1. **Router Creation**
+   ```typescript
+   const router = ExposedRouter('/v1/resource');
+   // OR
+   const router = StaffRouter('/v1/resource');
+   // OR
+   const router = DeveloperRouter('/v1/resource');
+   ```
+
+2. **Route Registration**
+   Routes are registered immediately when defined:
+   ```typescript
+   router.get('/',
+     auth.requireExposed,
+     Controller.create(controller => controller.tryList()));
+
+   router.post('/',
+     auth.requireExposed,
+     tryValidateBody(schema),
+     Controller.create(controller => controller.tryCreate()));
+   ```
+
+3. **No Export Needed**
+   The router export is not necessary as routes are registered when defined:
+   ```typescript
+   // This is not needed
+   export default router;
+   ```
+
+### Why This Pattern?
+
+1. **Immediate Registration**
+   - Routes are registered when defined using router methods
+   - No dependency on exports
+   - Cleaner code structure
+
+2. **Auto-Import**
+   - Files are imported based on naming pattern
+   - No need for explicit router exports
+   - Consistent with module-based architecture
+
+3. **Type Safety**
+   - Router types are preserved
+   - Path parameters are type-checked
+   - Middleware types are maintained
+
+## Best Practices
+
+1. **Router Creation**
+   - Use appropriate router type (Exposed/Staff/Developer)
+   - Follow path naming conventions
+   - Maintain consistent base paths
+
+2. **Route Definition**
+   - Group related routes together
+   - Use descriptive route paths
+   - Include proper middleware
+
+3. **Documentation**
+   - Include swagger comments
+   - Document path parameters
+   - Specify response schemas
+
+4. **Security**
+   - Apply proper auth middleware
+   - Validate request bodies
+   - Check access permissions
+
+5. **Testing**
+   - Test route registration
+   - Verify middleware order
+   - Check response formats 
