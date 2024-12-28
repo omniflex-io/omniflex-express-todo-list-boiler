@@ -255,13 +255,13 @@ describe('Item Management Integration Tests', () => {
     });
   });
 
-  describe('POST /v1/todo-lists/:listId/items/:id/complete', () => {
+  describe('PATCH /v1/todo-lists/:listId/items/:id/complete', () => {
     it('should mark item as completed as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
       const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -287,7 +287,7 @@ describe('Item Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
 
       const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -306,13 +306,13 @@ describe('Item Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
 
       await request(app)
-        .post(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/complete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(404);
     });
   });
 
-  describe('POST /v1/todo-lists/:listId/items/:id/uncomplete', () => {
+  describe('PATCH /v1/todo-lists/:listId/items/:id/uncomplete', () => {
     it('should mark item as uncompleted as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
@@ -323,7 +323,7 @@ describe('Item Management Integration Tests', () => {
       });
 
       const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -354,7 +354,7 @@ describe('Item Management Integration Tests', () => {
       });
 
       const response = await request(app)
-        .post(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
@@ -378,7 +378,7 @@ describe('Item Management Integration Tests', () => {
       });
 
       await request(app)
-        .post(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
+        .patch(`/v1/todo-lists/${list.id}/items/${item.id}/uncomplete`)
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(404);
     });
