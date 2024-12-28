@@ -71,17 +71,7 @@ Jest Execution Flow:
      ```
 
 4. Server Cleanup Requirements:
-   - Must stop ALL servers after tests
-   - Use closeAllConnections() before close()
-   - Example:
-     ```typescript
-     afterAll(() => {
-       for (const server of servers) {
-         server.closeAllConnections();
-         server.close();
-       }
-     });
-     ```
+  - if @config isTesting is true, `infra-express` will create the express app only without starting the server, no need to do server.close() in afterAll
 
 5. Common Jest Pitfalls:
    ```typescript
@@ -109,32 +99,14 @@ Jest Execution Flow:
 
    describe('Integration Tests', () => {
      let app: Express;
-     let servers: Server[];
      let testUser: { id: string; token: string };
 
      beforeAll(async () => {
        if (!app) {
-         const _servers = await AutoServer.start();
-         const exposedServer = _servers.find(({ type }) => type === 'exposed')!;
-
-         app = exposedServer.app;
-         servers = _servers.map(({ server }) => server!).filter(Boolean);
+          app = (await AutoServer.start())
+            .find(({ type }) => type === 'exposed')!
+            .app;
        }
-     });
-
-     afterAll(async () => {
-       // Clean up ALL servers properly
-       await Promise.all(
-         servers.map(server => new Promise<void>((resolve) => {
-           server.closeAllConnections();
-           server.close(() => resolve());
-         })),
-       );
-       await sequelize.close();
-     });
-
-     afterEach(async () => {
-       await resetTestData();
      });
    });
    ```
@@ -142,7 +114,6 @@ Jest Execution Flow:
 2. Important Points:
    - Server configuration comes from `servers.ts`
    - Route imports trigger configuration
-   - Clean up ALL servers after tests
 
 ## Test Helper Patterns
 
@@ -227,27 +198,22 @@ describe('Cross-Server Tests', () => {
 
 ## Common Issues
 
-1. Server Cleanup:
-   - Always clean up ALL servers, not just the one you're testing
-   - Use `server.closeAllConnections()` before `server.close()`
-   - Clean up in `afterAll`, not `afterEach`
-
-2. Database State:
+1. Database State:
    - Use `sequelize.sync({ force: true })` in `beforeAll`
    - Clean up test data in `afterEach`
    - Close connection in `afterAll`
 
-3. Authentication:
+2. Authentication:
    - Use `createTestUser()` for test tokens
    - Set correct `__appType` for server type
    - Include token in Authorization header
 
-4. Route Configuration:
+3. Route Configuration:
    - Import route files before `AutoServer.start()`
    - Don't manually configure routes in tests
    - Don't mix route configurations
 
-5. Assertion Best Practices:
+4. Assertion Best Practices:
    - Use `toBeTruthy()/toBeFalsy()` for boolean checks and null/undefined values
    - Use `toBeFalsy()` instead of explicit `toBeNull()` or `toBeUndefined()` checks
    - Use `toMatchObject()` for partial object matching
