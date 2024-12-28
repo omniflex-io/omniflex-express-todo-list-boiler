@@ -10,7 +10,13 @@ import './../../invitation.exposed.routes';
 import './../../list.exposed.routes';
 
 // Import test helpers
-import { createTestUser, createTestList, createTestInvitation } from '../helpers/setup';
+import {
+  createTestUser,
+  createTestList,
+  createTestInvitation,
+  expectResponseData,
+  expectListResponse,
+} from '../helpers/setup';
 
 describe('Invitation Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
@@ -49,8 +55,7 @@ describe('Invitation Management Integration Tests', () => {
         .send({ inviteeId: otherUser.id })
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
@@ -80,14 +85,12 @@ describe('Invitation Management Integration Tests', () => {
         .set('Authorization', `Bearer ${otherUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0]).toMatchObject({
+      expectListResponse(response, 1, [{
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
         status: 'pending',
-      });
+      }]);
     });
   });
 
@@ -102,14 +105,12 @@ describe('Invitation Management Integration Tests', () => {
         .set('Authorization', `Bearer ${otherUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(1);
-      expect(response.body.data[0]).toMatchObject({
+      expectListResponse(response, 1, [{
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
         status: 'accepted',
-      });
+      }]);
     });
   });
 
@@ -123,8 +124,7 @@ describe('Invitation Management Integration Tests', () => {
         .set('Authorization', `Bearer ${otherUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,
@@ -153,8 +153,7 @@ describe('Invitation Management Integration Tests', () => {
         .set('Authorization', `Bearer ${otherUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         listId: list.id,
         inviterId: testUser.id,
         inviteeId: otherUser.id,

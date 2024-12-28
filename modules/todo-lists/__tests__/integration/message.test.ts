@@ -10,7 +10,13 @@ import './../../list.exposed.routes';
 import './../../item.exposed.routes';
 
 // Import test helpers
-import { createTestUser, createTestList, createTestItem, createTestDiscussion } from '../helpers/setup';
+import {
+  createTestUser,
+  createTestList,
+  createTestItem,
+  createTestDiscussion,
+  expectResponseData,
+} from '../helpers/setup';
 
 describe('Message Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
@@ -53,8 +59,7 @@ describe('Message Management Integration Tests', () => {
         .send(messageData)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         discussionId: discussion.id,
         content: messageData.content,
         senderId: testUser.id,

@@ -11,7 +11,14 @@ import './../../list.exposed.routes';
 import './../../item.exposed.routes';
 
 // Import test helpers
-import { createTestUser, createTestList, createTestItem, createTestInvitation } from '../helpers/setup';
+import {
+  createTestUser,
+  createTestList,
+  createTestItem,
+  createTestInvitation,
+  expectResponseData,
+  expectListResponse,
+} from '../helpers/setup';
 
 describe('Discussion Management Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
@@ -50,10 +57,7 @@ describe('Discussion Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
-        itemId: item.id,
-      });
+      expectResponseData(response, { itemId: item.id });
     });
 
     it('[DSC-R0020] should create a new discussion for an item if it does not exist as member', async () => {
@@ -67,10 +71,7 @@ describe('Discussion Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
-        itemId: item.id,
-      });
+      expectResponseData(response, { itemId: item.id });
     });
 
     it('[DSC-R0030] should return existing discussion if it exists as owner', async () => {
@@ -83,8 +84,7 @@ describe('Discussion Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: discussion.id,
         itemId: item.id,
       });
@@ -102,8 +102,7 @@ describe('Discussion Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toMatchObject({
+      expectResponseData(response, {
         id: discussion.id,
         itemId: item.id,
       });
@@ -136,13 +135,13 @@ describe('Discussion Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
 
-      await messages.create({
+      const message1 = await messages.create({
         discussionId: discussion.id,
         senderId: testUser.id,
         content: 'Test Message 1',
       });
 
-      await messages.create({
+      const message2 = await messages.create({
         discussionId: discussion.id,
         senderId: testUser.id,
         content: 'Test Message 2',
@@ -153,10 +152,10 @@ describe('Discussion Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data[0]).toHaveProperty('content', 'Test Message 1');
-      expect(response.body.data[1]).toHaveProperty('content', 'Test Message 2');
+      expectListResponse(response, 2, [
+        { id: message1.id, content: 'Test Message 1' },
+        { id: message2.id, content: 'Test Message 2' },
+      ]);
     });
 
     it('[DSC-R0080] should list all messages in a discussion as member', async () => {
@@ -166,13 +165,13 @@ describe('Discussion Management Integration Tests', () => {
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
 
-      await messages.create({
+      const message1 = await messages.create({
         discussionId: discussion.id,
         senderId: otherUser.id,
         content: 'Test Message 1',
       });
 
-      await messages.create({
+      const message2 = await messages.create({
         discussionId: discussion.id,
         senderId: otherUser.id,
         content: 'Test Message 2',
@@ -183,10 +182,10 @@ describe('Discussion Management Integration Tests', () => {
         .set('Authorization', `Bearer ${testUser.token}`)
         .expect(200);
 
-      expect(response.body).toHaveProperty('data');
-      expect(response.body.data).toHaveLength(2);
-      expect(response.body.data[0]).toHaveProperty('content', 'Test Message 1');
-      expect(response.body.data[1]).toHaveProperty('content', 'Test Message 2');
+      expectListResponse(response, 2, [
+        { id: message1.id, content: 'Test Message 1' },
+        { id: message2.id, content: 'Test Message 2' },
+      ]);
     });
 
     it('[DSC-R0090] should not reveal messages to non-members', async () => {
