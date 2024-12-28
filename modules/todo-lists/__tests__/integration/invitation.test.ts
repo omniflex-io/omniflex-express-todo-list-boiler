@@ -440,4 +440,43 @@ describe('Invitation Management Integration Tests', () => {
         .get(`/v1/todo-lists/${list.id}`, otherUser.token);
     });
   });
+
+  describe('POST /v1/todo-lists/:listId/invitations/codes', () => {
+    it('[INV-C0045] should create invitation code as owner', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+
+      const response = await expect200
+        .post(`/v1/todo-lists/${list.id}/invitations/codes`, { autoApprove: true }, testUser.token);
+
+      expectResponseData(response, {
+        listId: list.id,
+        inviterId: testUser.id,
+        autoApprove: true,
+        expiresAt: expect.any(String),
+      });
+    });
+
+    it('[INV-C0046] should not allow member to create invitation code', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+      const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
+      await invitations.updateById(invitation.id, { status: 'accepted', approved: true });
+
+      await expect404
+        .post(`/v1/todo-lists/${list.id}/invitations/codes`, { autoApprove: true }, otherUser.token);
+    });
+
+    it('[INV-C0047] should not allow non-member to create invitation code', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+
+      await expect404
+        .post(`/v1/todo-lists/${list.id}/invitations/codes`, { autoApprove: true }, otherUser.token);
+    });
+
+    it('[INV-C0048] should require authentication', async () => {
+      const list = await createTestList(testUser.id, 'Test List');
+
+      await expect401
+        .post(`/v1/todo-lists/${list.id}/invitations/codes`, { autoApprove: true });
+    });
+  });
 });
