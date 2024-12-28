@@ -40,7 +40,7 @@ describe('Item Management Integration Tests', () => {
   });
 
   describe('POST /v1/todo-lists/:listId/items', () => {
-    it('should create a new item successfully as owner', async () => {
+    it('[ITM-C0010] should create a new item successfully as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 
       const response = await request(app)
@@ -57,7 +57,7 @@ describe('Item Management Integration Tests', () => {
       });
     });
 
-    it('should create a new item successfully as member', async () => {
+    it('[ITM-C0020] should create a new item successfully as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await invitations.create({
         listId: list.id,
@@ -81,7 +81,7 @@ describe('Item Management Integration Tests', () => {
       });
     });
 
-    it('should require list access', async () => {
+    it('[ITM-C0030] should require list access', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 
       await request(app)
@@ -93,7 +93,7 @@ describe('Item Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists/:listId/items', () => {
-    it('should list all items in a list as owner', async () => {
+    it('[ITM-R0010] should list all items in a list as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       await createTestItem(list.id, 'Test Item 1');
       await createTestItem(list.id, 'Test Item 2');
@@ -109,7 +109,7 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data[1]).toHaveProperty('content', 'Test Item 2');
     });
 
-    it('should list all items in a list as member', async () => {
+    it('[ITM-R0020] should list all items in a list as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await invitations.create({
         listId: list.id,
@@ -132,7 +132,7 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data[1]).toHaveProperty('content', 'Test Item 2');
     });
 
-    it('should not reveal items to non-members', async () => {
+    it('[ITM-R0030] should not reveal items to non-members', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await createTestItem(list.id, 'Test Item 1');
       await createTestItem(list.id, 'Test Item 2');
@@ -145,7 +145,7 @@ describe('Item Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists/:listId/items/:id', () => {
-    it('should get a specific item as owner', async () => {
+    it('[ITM-R0040] should get a specific item as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -163,7 +163,7 @@ describe('Item Management Integration Tests', () => {
       });
     });
 
-    it('should get a specific item as member', async () => {
+    it('[ITM-R0050] should get a specific item as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await invitations.create({
         listId: list.id,
@@ -188,7 +188,7 @@ describe('Item Management Integration Tests', () => {
       });
     });
 
-    it('should not reveal item existence to non-members', async () => {
+    it('[ITM-R0060] should not reveal item existence to non-members', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -200,7 +200,7 @@ describe('Item Management Integration Tests', () => {
   });
 
   describe('PATCH /v1/todo-lists/:listId/items/:id', () => {
-    it('should update item content as owner', async () => {
+    it('[ITM-U0010] should update item content as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -218,7 +218,7 @@ describe('Item Management Integration Tests', () => {
       });
     });
 
-    it('should update item content as member', async () => {
+    it('[ITM-U0020] should update item content as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await invitations.create({
         listId: list.id,
@@ -243,7 +243,7 @@ describe('Item Management Integration Tests', () => {
       });
     });
 
-    it('should not allow non-members to update items', async () => {
+    it('[ITM-U0030] should not allow non-members to update items', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -256,7 +256,7 @@ describe('Item Management Integration Tests', () => {
   });
 
   describe('PATCH /v1/todo-lists/:listId/items/:id/complete', () => {
-    it('should mark item as completed as owner', async () => {
+    it('[ITM-U0040] should mark item as completed as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -275,7 +275,7 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data).toHaveProperty('completedAt');
     });
 
-    it('should mark item as completed as member', async () => {
+    it('[ITM-U0050] should mark item as completed as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await invitations.create({
         listId: list.id,
@@ -301,7 +301,7 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data).toHaveProperty('completedAt');
     });
 
-    it('should not allow non-members to complete items', async () => {
+    it('[ITM-U0060] should not allow non-members to complete items', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -313,7 +313,7 @@ describe('Item Management Integration Tests', () => {
   });
 
   describe('PATCH /v1/todo-lists/:listId/items/:id/uncomplete', () => {
-    it('should mark item as uncompleted as owner', async () => {
+    it('[ITM-U0070] should mark item as uncompleted as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       await items.updateById(item.id, {
@@ -337,7 +337,7 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data.completedBy).toBeFalsy();
     });
 
-    it('should mark item as uncompleted as member', async () => {
+    it('[ITM-U0080] should mark item as uncompleted as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       await invitations.create({
         listId: list.id,
@@ -368,7 +368,7 @@ describe('Item Management Integration Tests', () => {
       expect(response.body.data.completedBy).toBeFalsy();
     });
 
-    it('should not allow non-members to uncomplete items', async () => {
+    it('[ITM-U0090] should not allow non-members to uncomplete items', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
       await items.updateById(item.id, {

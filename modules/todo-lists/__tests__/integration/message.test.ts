@@ -29,12 +29,16 @@ describe('Message Management Integration Tests', () => {
     await sequelize.sync({ force: true });
   });
 
+  beforeEach(async () => {
+    await sequelize.sync({ force: true });
+  });
+
   afterAll(async () => {
     await sequelize.close();
   });
 
   describe('POST /v1/todo-lists/discussions/:id/messages', () => {
-    it('should create a new message successfully', async () => {
+    it('[MSG-C0010] should create a new message successfully', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await createTestDiscussion(item.id);
@@ -57,7 +61,7 @@ describe('Message Management Integration Tests', () => {
       });
     });
 
-    it('should require authentication', async () => {
+    it('[MSG-C0020] should require authentication', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await createTestDiscussion(item.id);
@@ -72,7 +76,7 @@ describe('Message Management Integration Tests', () => {
         .expect(401);
     });
 
-    it('should require valid discussion', async () => {
+    it('[MSG-C0030] should require valid discussion', async () => {
       const messageData = {
         content: 'Test Message',
       };
@@ -84,7 +88,7 @@ describe('Message Management Integration Tests', () => {
         .expect(400);
     });
 
-    it('should require message content', async () => {
+    it('[MSG-C0040] should require message content', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await createTestDiscussion(item.id);
@@ -96,7 +100,7 @@ describe('Message Management Integration Tests', () => {
         .expect(400);
     });
 
-    it('should validate list membership', async () => {
+    it('[MSG-C0050] should validate list membership', async () => {
       const otherUser = await createTestUser();
       const list = await createTestList(otherUser.id, 'Other List');
       const item = await createTestItem(list.id, 'Test Item');

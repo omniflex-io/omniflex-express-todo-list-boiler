@@ -32,12 +32,16 @@ describe('Discussion Management Integration Tests', () => {
     await sequelize.sync({ force: true });
   });
 
+  beforeEach(async () => {
+    await sequelize.sync({ force: true });
+  });
+
   afterAll(async () => {
     await sequelize.close();
   });
 
   describe('GET /v1/todo-lists/:listId/items/:itemId/discussion', () => {
-    it('should create a new discussion for an item if it does not exist as owner', async () => {
+    it('[DSC-R0010] should create a new discussion for an item if it does not exist as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -52,7 +56,7 @@ describe('Discussion Management Integration Tests', () => {
       });
     });
 
-    it('should create a new discussion for an item if it does not exist as member', async () => {
+    it('[DSC-R0020] should create a new discussion for an item if it does not exist as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
@@ -69,7 +73,7 @@ describe('Discussion Management Integration Tests', () => {
       });
     });
 
-    it('should return existing discussion if it exists as owner', async () => {
+    it('[DSC-R0030] should return existing discussion if it exists as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
@@ -86,7 +90,7 @@ describe('Discussion Management Integration Tests', () => {
       });
     });
 
-    it('should return existing discussion if it exists as member', async () => {
+    it('[DSC-R0040] should return existing discussion if it exists as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
@@ -105,7 +109,7 @@ describe('Discussion Management Integration Tests', () => {
       });
     });
 
-    it('should require authentication', async () => {
+    it('[DSC-R0050] should require authentication', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
 
@@ -114,7 +118,7 @@ describe('Discussion Management Integration Tests', () => {
         .expect(401);
     });
 
-    it('should not reveal discussion existence to non-members', async () => {
+    it('[DSC-R0060] should not reveal discussion existence to non-members', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
       await discussions.create({ itemId: item.id });
@@ -127,7 +131,7 @@ describe('Discussion Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists/discussions/:id/messages', () => {
-    it('should list all messages in a discussion as owner', async () => {
+    it('[DSC-R0070] should list all messages in a discussion as owner', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
@@ -155,7 +159,7 @@ describe('Discussion Management Integration Tests', () => {
       expect(response.body.data[1]).toHaveProperty('content', 'Test Message 2');
     });
 
-    it('should list all messages in a discussion as member', async () => {
+    it('[DSC-R0080] should list all messages in a discussion as member', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
@@ -185,7 +189,7 @@ describe('Discussion Management Integration Tests', () => {
       expect(response.body.data[1]).toHaveProperty('content', 'Test Message 2');
     });
 
-    it('should not reveal messages to non-members', async () => {
+    it('[DSC-R0090] should not reveal messages to non-members', async () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });
@@ -202,7 +206,7 @@ describe('Discussion Management Integration Tests', () => {
         .expect(404);
     });
 
-    it('should require authentication', async () => {
+    it('[DSC-R0100] should require authentication', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
       const discussion = await discussions.create({ itemId: item.id });

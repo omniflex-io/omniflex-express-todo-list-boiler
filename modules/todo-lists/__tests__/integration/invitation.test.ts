@@ -40,7 +40,7 @@ describe('Invitation Management Integration Tests', () => {
   });
 
   describe('POST /v1/todo-lists/:listId/invitations', () => {
-    it('should create a new invitation successfully', async () => {
+    it('[INV-C0010] should create a new invitation successfully', async () => {
       const list = await createTestList(testUser.id, 'Test List');
 
       const response = await request(app)
@@ -59,7 +59,7 @@ describe('Invitation Management Integration Tests', () => {
       });
     });
 
-    it('should require list ownership', async () => {
+    it('[INV-C0020] should require list ownership', async () => {
       const list = await createTestList(otherUser.id, 'Test List');
 
       await request(app)
@@ -71,7 +71,7 @@ describe('Invitation Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists/invitations/my/pending', () => {
-    it('should list pending invitations', async () => {
+    it('[INV-R0010] should list pending invitations', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       await createTestInvitation(list.id, testUser.id, otherUser.id);
 
@@ -92,7 +92,7 @@ describe('Invitation Management Integration Tests', () => {
   });
 
   describe('GET /v1/todo-lists/invitations/my/accepted', () => {
-    it('should list accepted invitations', async () => {
+    it('[INV-R0020] should list accepted invitations', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
@@ -114,7 +114,7 @@ describe('Invitation Management Integration Tests', () => {
   });
 
   describe('PATCH /v1/todo-lists/invitations/:id/accept', () => {
-    it('should accept an invitation', async () => {
+    it('[INV-U0010] should accept an invitation', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
@@ -132,7 +132,7 @@ describe('Invitation Management Integration Tests', () => {
       });
     });
 
-    it('should only allow invitee to accept', async () => {
+    it('[INV-U0020] should only allow invitee to accept', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
@@ -144,7 +144,7 @@ describe('Invitation Management Integration Tests', () => {
   });
 
   describe('PATCH /v1/todo-lists/invitations/:id/reject', () => {
-    it('should reject an invitation', async () => {
+    it('[INV-U0030] should reject an invitation', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
@@ -162,7 +162,7 @@ describe('Invitation Management Integration Tests', () => {
       });
     });
 
-    it('should only allow invitee to reject', async () => {
+    it('[INV-U0040] should only allow invitee to reject', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const invitation = await createTestInvitation(list.id, testUser.id, otherUser.id);
 
