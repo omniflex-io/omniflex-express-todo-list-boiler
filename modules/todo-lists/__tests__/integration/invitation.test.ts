@@ -108,6 +108,7 @@ describe('Invitation Management Integration Tests', () => {
         inviterId: testUser.id,
         inviteeId: otherUser.id,
         status: 'pending',
+        approved: true,
       }]);
     });
 
@@ -282,12 +283,22 @@ describe('Invitation Management Integration Tests', () => {
       const response = await expect200
         .get(`/v1/todo-lists/${list.id}/invitations`, testUser.token);
 
-      expectListResponse(response, 1, [{
-        listId: list.id,
-        inviterId: testUser.id,
-        inviteeId: otherUser.id,
-        status: 'pending',
-      }]);
+      expectListResponse(response, 2, [
+        {
+          listId: list.id,
+          inviterId: testUser.id,
+          inviteeId: testUser.id,
+          status: 'accepted',
+          approved: true,
+        },
+        {
+          listId: list.id,
+          inviterId: testUser.id,
+          inviteeId: otherUser.id,
+          status: 'pending',
+          approved: true,
+        },
+      ]);
     });
 
     it('[INV-R0035] should not list invitations as member', async () => {
