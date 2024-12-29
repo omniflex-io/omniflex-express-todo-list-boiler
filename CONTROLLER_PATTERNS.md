@@ -168,6 +168,37 @@ tryComplexUpdate() {
 The base controller provides a `tryAction` method for consistent error handling.
 This pattern ensures all errors are caught and handled uniformly across the application.
 
+### Important Notes About tryAction
+
+1. **Response Handling**
+   - `tryAction` itself does NOT handle response formatting
+   - You must explicitly call response methods (`respondOne`, `respondMany`, etc.) inside the callback
+   - The callback's return value is not automatically sent as a response
+
+2. **Error Handling**
+   - All errors are caught and passed to the error handling middleware
+   - Database errors are automatically mapped to appropriate HTTP status codes
+   - Validation errors are automatically formatted for consistent client responses
+
+3. **Response Methods Inside tryAction**
+   ```typescript
+   // INCORRECT: Relying on callback return value
+   tryCustomOperation() {
+     return this.tryAction(async () => {
+       const result = await this.performCustomLogic();
+       return result; // This won't be sent as response
+     });
+   }
+
+   // CORRECT: Explicitly calling response method
+   tryCustomOperation() {
+     return this.tryAction(async () => {
+       const result = await this.performCustomLogic();
+       return this.respondOne(result); // Properly formats and sends response
+     });
+   }
+   ```
+
 ### When to Use tryAction
 
 1. When implementing custom logic before or after calling super methods

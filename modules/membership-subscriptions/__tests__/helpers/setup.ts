@@ -1,6 +1,6 @@
 import { v4 as uuid } from 'uuid';
 import { jwtProvider } from '@/utils/jwt';
-import { membershipLevels, membershipRecords } from '../../membership.repo';
+import { membershipLevels, membershipRecords, currentMemberships } from '../../membership.repo';
 
 export const createTestUser = async (type: 'staff' | 'exposed' | 'developer') => {
   const userId = uuid();
@@ -52,12 +52,29 @@ export const createTestMembershipRecord = async (
   startAtUtc = new Date(),
   endBeforeUtc = new Date('9999-12-31T23:59:59Z'),
 ) => {
-  return membershipRecords.create({
+  const record = await membershipRecords.create({
     userId,
     membershipLevelId,
     startAtUtc,
     endBeforeUtc,
   });
+
+  // Create or update current membership
+  const existingCurrent = await currentMemberships.findOne({ userId, deletedAt: null });
+  if (existingCurrent) {
+    await currentMemberships.updateById(existingCurrent.id, {
+      membershipLevelId,
+      membershipRecordId: record.id,
+    });
+  } else {
+    await currentMemberships.create({
+      userId,
+      membershipLevelId,
+      membershipRecordId: record.id,
+    });
+  }
+
+  return record;
 };
 
 export const resetTestData = async (): Promise<void> => {

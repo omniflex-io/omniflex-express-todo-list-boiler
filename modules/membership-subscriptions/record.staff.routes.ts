@@ -78,4 +78,4 @@ router
     byRecordId,
     tryValidateBody(updateMembershipRecordSchema),
     validateMembershipLevelExists,
-    MembershipRecordController.create(controller => controller.tryUpdate())); 
+    MembershipRecordController.create(controller => controller.tryUpdate()));

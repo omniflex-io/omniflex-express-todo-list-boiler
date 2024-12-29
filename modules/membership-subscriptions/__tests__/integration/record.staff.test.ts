@@ -3,10 +3,13 @@ import { v4 as uuid } from 'uuid';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 
+// Import route handlers
 import '../../record.staff.routes';
 import { initializeDatabase } from '../../models';
 import { membershipLevels } from '../../membership.repo';
+import { TMembershipLevel } from '../../models';
 
+// Import test helpers
 import {
   createTestUser,
   createTestLevel,
@@ -17,20 +20,19 @@ import {
   expectListResponse,
   expectResponseData,
 } from '../helpers/setup';
-import {
-  expect200,
-  expect401,
-  expect400,
-  expect404,
-} from '../helpers/request';
+import { RequestHelper } from '../helpers/request';
 
 describe('Membership Record Staff Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
+  const expect200 = new RequestHelper(() => app, 200);
+  const expect401 = new RequestHelper(() => app, 401);
+  const expect400 = new RequestHelper(() => app, 400);
+  const expect404 = new RequestHelper(() => app, 404);
 
   let app: Express;
-  let staffUser: { id: string; token: string };
-  let normalUser: { id: string; token: string };
-  let defaultLevel: { id: string };
+  let staffUser: { id: string; token: string; };
+  let normalUser: { id: string; token: string; };
+  let defaultLevel: TMembershipLevel;
 
   beforeAll(async () => {
     if (!app) {
@@ -44,24 +46,25 @@ describe('Membership Record Staff Integration Tests', () => {
 
     staffUser = await createTestUser('staff');
     normalUser = await createTestUser('exposed');
-    defaultLevel = await membershipLevels.findOne({ isDefault: true });
+    const level = await membershipLevels.findOne({ isDefault: true });
+    if (!level) throw new Error('Default level not found');
+    defaultLevel = level;
   });
 
   afterAll(async () => {
     await sequelize.close();
-    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   beforeEach(async () => {
     await sequelize.sync({ force: true });
     await initializeDatabase();
-    await new Promise(resolve => setTimeout(resolve, 100));
-    defaultLevel = await membershipLevels.findOne({ isDefault: true });
+    const level = await membershipLevels.findOne({ isDefault: true });
+    if (!level) throw new Error('Default level not found');
+    defaultLevel = level;
   });
 
   afterEach(async () => {
     await resetTestData();
-    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   describe('GET /v1/membership/records', () => {
@@ -69,14 +72,14 @@ describe('Membership Record Staff Integration Tests', () => {
 
     it('[STAFF-R0010] should list all membership records', async () => {
       const premiumLevel = await createTestLevel(2);
-      const record1 = await createTestMembershipRecord(uuid(), defaultLevel.id);
-      const record2 = await createTestMembershipRecord(uuid(), premiumLevel.id);
+      const record1 = await createTestMembershipRecord(staffUser.id, defaultLevel.id);
+      const record2 = await createTestMembershipRecord(normalUser.id, premiumLevel.id);
 
-      const response = await expect200(() => app).get(url, staffUser.token);
+      const response = await expect200.get(url, staffUser.token);
 
       expectListResponse(response, 2, [
-        { id: record1.id, membershipLevelId: defaultLevel.id },
-        { id: record2.id, membershipLevelId: premiumLevel.id },
+        { id: record1.id, userId: staffUser.id, membershipLevelId: defaultLevel.id },
+        { id: record2.id, userId: normalUser.id, membershipLevelId: premiumLevel.id },
       ]);
     });
 
@@ -93,7 +96,7 @@ describe('Membership Record Staff Integration Tests', () => {
       await createTestMembershipRecord(otherUserId, defaultLevel.id);
       await createTestMembershipRecord(otherUserId, premiumLevel.id);
 
-      const response = await expect200(() => app).get(
+      const response = await expect200.get(
         `${url}?userId=${targetUserId}`,
         staffUser.token,
       );
@@ -105,7 +108,7 @@ describe('Membership Record Staff Integration Tests', () => {
     });
 
     it('[STAFF-R0020] should require staff auth', async () => {
-      await expect401(() => app).get(url, normalUser.token);
+      await expect401.get(url, normalUser.token);
     });
   });
 
@@ -124,7 +127,7 @@ describe('Membership Record Staff Integration Tests', () => {
         endBeforeUtc,
       );
 
-      const response = await expect200(() => app).post(
+      const response = await expect200.post(
         url,
         recordData,
         staffUser.token,
@@ -137,7 +140,7 @@ describe('Membership Record Staff Integration Tests', () => {
     it('[STAFF-R0040] should require staff auth', async () => {
       const recordData = createTestMembershipRecordData(uuid(), defaultLevel.id);
 
-      await expect401(() => app).post(
+      await expect401.post(
         url,
         recordData,
         normalUser.token,
@@ -147,7 +150,7 @@ describe('Membership Record Staff Integration Tests', () => {
     it('[STAFF-R0050] should validate membership level exists', async () => {
       const recordData = createTestMembershipRecordData(uuid(), uuid());
 
-      await expect404(() => app).post(
+      await expect404.post(
         url,
         recordData,
         staffUser.token,
@@ -165,7 +168,7 @@ describe('Membership Record Staff Integration Tests', () => {
         endBeforeUtc,
       );
 
-      await expect400(() => app).post(
+      await expect400.post(
         url,
         recordData,
         staffUser.token,
@@ -177,33 +180,27 @@ describe('Membership Record Staff Integration Tests', () => {
     const getUrl = (recordId: string) => `/v1/membership/records/${recordId}`;
 
     it('[STAFF-R0070] should get membership record by ID', async () => {
-      const userId = uuid();
-      const record = await createTestMembershipRecord(userId, defaultLevel.id);
+      const premiumLevel = await createTestLevel(2);
+      const record = await createTestMembershipRecord(staffUser.id, premiumLevel.id);
 
-      const response = await expect200(() => app).get(
-        getUrl(record.id),
-        staffUser.token,
-      );
+      const response = await expect200.get(getUrl(record.id), staffUser.token);
 
       const data = expectResponseData(response, {
         id: record.id,
-        userId,
-        membershipLevelId: defaultLevel.id,
+        userId: staffUser.id,
+        membershipLevelId: premiumLevel.id,
       });
       expectMembershipRecordResponse(data);
     });
 
     it('[STAFF-R0080] should require staff auth', async () => {
-      const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
+      const record = await createTestMembershipRecord(staffUser.id, defaultLevel.id);
 
-      await expect401(() => app).get(
-        getUrl(record.id),
-        normalUser.token,
-      );
+      await expect401.get(getUrl(record.id), normalUser.token);
     });
 
     it('[STAFF-R0090] should return 404 for non-existent record', async () => {
-      await expect404(() => app).get(getUrl(uuid()), staffUser.token);
+      await expect404.get(getUrl(uuid()), staffUser.token);
     });
   });
 
@@ -222,7 +219,7 @@ describe('Membership Record Staff Integration Tests', () => {
         endBeforeUtc: newEndBeforeUtc.toISOString(),
       };
 
-      const response = await expect200(() => app).patch(
+      const response = await expect200.patch(
         getUrl(record.id),
         updateData,
         staffUser.token,
@@ -236,7 +233,7 @@ describe('Membership Record Staff Integration Tests', () => {
       const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
       const updateData = { startAtUtc: new Date().toISOString() };
 
-      await expect401(() => app).patch(
+      await expect401.patch(
         getUrl(record.id),
         updateData,
         normalUser.token,
@@ -247,7 +244,7 @@ describe('Membership Record Staff Integration Tests', () => {
       const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
       const updateData = { membershipLevelId: uuid() };
 
-      await expect404(() => app).patch(
+      await expect404.patch(
         getUrl(record.id),
         updateData,
         staffUser.token,
@@ -266,7 +263,7 @@ describe('Membership Record Staff Integration Tests', () => {
         endBeforeUtc,
       );
 
-      await expect400(() => app).patch(
+      await expect400.patch(
         getUrl(record.id),
         updateData,
         staffUser.token,
@@ -276,11 +273,11 @@ describe('Membership Record Staff Integration Tests', () => {
     it('[STAFF-R0140] should return 404 for non-existent record', async () => {
       const updateData = { startAtUtc: new Date().toISOString() };
 
-      await expect404(() => app).patch(
+      await expect404.patch(
         getUrl(uuid()),
         updateData,
         staffUser.token,
       );
     });
   });
-}); 
+});

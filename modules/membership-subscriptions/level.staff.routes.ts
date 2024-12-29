@@ -70,4 +70,4 @@ router
     MembershipLevelController.create(controller => controller.tryGetOne()));
 
 // Initialize database with basic membership level
-initializeDatabase().catch(console.error); 
+initializeDatabase().catch(console.error);

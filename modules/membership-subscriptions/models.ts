@@ -10,7 +10,7 @@ export type TMembershipLevel = {
   isDefault: boolean
   createdAt: Date
   updatedAt: Date
-  deletedAt?: Date
+  deletedAt?: Date | null
 }
 
 export type TMembershipRecord = {
@@ -21,7 +21,7 @@ export type TMembershipRecord = {
   endBeforeUtc: Date
   createdAt: Date
   updatedAt: Date
-  deletedAt?: Date
+  deletedAt?: Date | null
 }
 
 export type TCurrentMembership = {
@@ -31,7 +31,7 @@ export type TCurrentMembership = {
   membershipRecordId: string
   createdAt: Date
   updatedAt: Date
-  deletedAt?: Date
+  deletedAt?: Date | null
 }
 
 const membershipLevelSchema = {

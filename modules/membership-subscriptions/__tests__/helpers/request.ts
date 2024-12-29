@@ -8,11 +8,11 @@ const expectCode = async (app: Express, {
   method,
   bearerToken,
 }: {
-  data?: any
-  url: string
-  code: number
-  bearerToken?: string
-  method: 'get' | 'post' | 'put' | 'delete' | 'patch'
+  data?: any;
+  url: string;
+  code: number;
+  bearerToken?: string;
+  method: 'get' | 'post' | 'put' | 'delete' | 'patch';
 }) => {
   const chainedRequest = request(app)[method](url);
   const withBearer = bearerToken ?
@@ -74,11 +74,3 @@ export class RequestHelper {
     return this.appFactory();
   }
 }
-
-export const expect200 = (appFactory: () => Express) => new RequestHelper(appFactory, 200);
-export const expect201 = (appFactory: () => Express) => new RequestHelper(appFactory, 201);
-export const expect400 = (appFactory: () => Express) => new RequestHelper(appFactory, 400);
-export const expect401 = (appFactory: () => Express) => new RequestHelper(appFactory, 401);
-export const expect403 = (appFactory: () => Express) => new RequestHelper(appFactory, 403);
-export const expect404 = (appFactory: () => Express) => new RequestHelper(appFactory, 404);
-export const expect500 = (appFactory: () => Express) => new RequestHelper(appFactory, 500);
