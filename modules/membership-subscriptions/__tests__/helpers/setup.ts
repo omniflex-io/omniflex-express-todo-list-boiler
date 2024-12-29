@@ -14,6 +14,17 @@ export const createTestUser = async (type: 'staff' | 'exposed' | 'developer') =>
   return { id: userId, token };
 };
 
+export const createTestLevelData = (
+  rank: number,
+  isDefault = false,
+  code?: string,
+) => ({
+  name: code ? code.toLowerCase() : `Level ${rank}`,
+  code: code || `LEVEL_${rank}`,
+  rank,
+  isDefault,
+});
+
 export const createTestLevel = async (rank: number, isDefault = false, code?: string) => {
   return membershipLevels.create({
     name: code ? code.toLowerCase() : `Level ${rank}`,
@@ -22,6 +33,18 @@ export const createTestLevel = async (rank: number, isDefault = false, code?: st
     isDefault,
   });
 };
+
+export const createTestMembershipRecordData = (
+  userId = uuid(),
+  membershipLevelId: string,
+  startAtUtc = new Date(),
+  endBeforeUtc = new Date('9999-12-31T23:59:59Z'),
+) => ({
+  userId,
+  membershipLevelId,
+  startAtUtc: startAtUtc instanceof Date ? startAtUtc.toISOString() : startAtUtc,
+  endBeforeUtc: endBeforeUtc instanceof Date ? endBeforeUtc.toISOString() : endBeforeUtc,
+});
 
 export const createTestMembershipRecord = async (
   userId: string,

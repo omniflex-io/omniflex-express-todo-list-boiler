@@ -21,7 +21,10 @@ class MembershipRecordController extends BaseEntitiesController<TMembershipRecor
 
   tryList() {
     return this.tryAction(async () => {
-      const records = await this.repository.find({}, {
+      const { userId } = this.req.query;
+      const filter = userId ? { userId: userId as string } : {};
+
+      const records = await this.repository.find(filter, {
         sort: { startAtUtc: 'desc' },
       });
       this.respondMany(records);
@@ -38,8 +41,9 @@ const router = StaffRouter('/v1/membership');
 router
   .get('/records',
     // #swagger.summary = 'List all membership records'
-    // #swagger.description = 'Returns a paginated list of all membership records'
+    // #swagger.description = 'Returns a paginated list of all membership records. Can be filtered by userId.'
     // #swagger.security = [{ "bearerAuth": [] }]
+    // #swagger.parameters['userId'] = { description: 'Filter records by user ID', type: 'string' }
     // #swagger.parameters['page'] = { description: 'Page number (1-based)', type: 'integer', default: 1 }
     // #swagger.parameters['pageSize'] = { description: 'Number of items per page', type: 'integer', default: 10 }
     auth.requireStaff,

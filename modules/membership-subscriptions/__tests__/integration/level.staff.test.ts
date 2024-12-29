@@ -12,6 +12,7 @@ import { membershipLevels } from '../../membership.repo';
 import {
   createTestUser,
   createTestLevel,
+  createTestLevelData,
   resetTestData,
   expectMembershipLevelResponse,
   expectListResponse,
@@ -28,9 +29,9 @@ describe('Membership Staff Integration Tests', () => {
   const sequelize = Containers.appContainer.resolve('sequelize');
 
   let app: Express;
-  let staffUser: { id: string; token: string };
-  let normalUser: { id: string; token: string };
-  let defaultLevel: { id: string };
+  let staffUser: { id: string; token: string; };
+  let normalUser: { id: string; token: string; };
+  let defaultLevel: { id: string; };
 
   beforeAll(async () => {
     if (!app) {
@@ -89,80 +90,41 @@ describe('Membership Staff Integration Tests', () => {
     const url = '/v1/membership/levels';
 
     it('[STAFF-L0030] should create a new membership level', async () => {
-      const response = await expect200(() => app).post(
-        url,
-        {
-          name: 'Premium',
-          code: 'PREMIUM',
-          rank: 2,
-          isDefault: false,
-        },
-        staffUser.token,
-      );
+      const levelData = createTestLevelData(2, false, 'PREMIUM');
+      const response = await expect200(() => app)
+        .post(url, levelData, staffUser.token);
 
-      const data = expectResponseData(response, {
-        name: 'Premium',
-        code: 'PREMIUM',
-        rank: 2,
-        isDefault: false,
-      });
+      const data = expectResponseData(response, levelData);
       expectMembershipLevelResponse(data);
     });
 
     it('[STAFF-L0040] should require staff auth', async () => {
-      await expect401(() => app).post(
-        url,
-        {
-          name: 'Premium',
-          code: 'PREMIUM',
-          rank: 2,
-          isDefault: false,
-        },
-        normalUser.token,
-      );
+      const levelData = createTestLevelData(2, false, 'PREMIUM');
+      await expect401(() => app)
+        .post(url, levelData, normalUser.token);
     });
 
     it('[STAFF-L0050] should validate unique code', async () => {
       await createTestLevel(2, false, 'PREMIUM');
+      const levelData = createTestLevelData(3, false, 'PREMIUM');
 
-      await expect400(() => app).post(
-        url,
-        {
-          name: 'Premium Plus',
-          code: 'PREMIUM',
-          rank: 3,
-          isDefault: false,
-        },
-        staffUser.token,
-      );
+      await expect400(() => app)
+        .post(url, levelData, staffUser.token);
     });
 
     it('[STAFF-L0060] should validate unique rank', async () => {
       await createTestLevel(2);
+      const levelData = createTestLevelData(2, false, 'PREMIUM_PLUS');
 
-      await expect400(() => app).post(
-        url,
-        {
-          name: 'Premium Plus',
-          code: 'PREMIUM_PLUS',
-          rank: 2,
-          isDefault: false,
-        },
-        staffUser.token,
-      );
+      await expect400(() => app)
+        .post(url, levelData, staffUser.token);
     });
 
     it('[STAFF-L0070] should not allow creating default level if one exists', async () => {
-      await expect400(() => app).post(
-        url,
-        {
-          name: 'Basic Plus',
-          code: 'BASIC_PLUS',
-          rank: 0,
-          isDefault: true,
-        },
-        staffUser.token,
-      );
+      const levelData = createTestLevelData(0, true, 'BASIC_PLUS');
+
+      await expect400(() => app)
+        .post(url, levelData, staffUser.token);
     });
   });
 
@@ -172,10 +134,8 @@ describe('Membership Staff Integration Tests', () => {
     it('[STAFF-L0080] should get membership level by ID', async () => {
       const premiumLevel = await createTestLevel(2);
 
-      const response = await expect200(() => app).get(
-        getUrl(premiumLevel.id),
-        staffUser.token,
-      );
+      const response = await expect200(() => app)
+        .get(getUrl(premiumLevel.id), staffUser.token);
 
       const data = expectResponseData(response, {
         id: premiumLevel.id,
@@ -187,10 +147,8 @@ describe('Membership Staff Integration Tests', () => {
     it('[STAFF-L0090] should require staff auth', async () => {
       const premiumLevel = await createTestLevel(2);
 
-      await expect401(() => app).get(
-        getUrl(premiumLevel.id),
-        normalUser.token,
-      );
+      await expect401(() => app)
+        .get(getUrl(premiumLevel.id), normalUser.token);
     });
 
     it('[STAFF-L0100] should return 404 for non-existent level', async () => {

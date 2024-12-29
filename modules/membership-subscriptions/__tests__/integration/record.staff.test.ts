@@ -11,6 +11,7 @@ import {
   createTestUser,
   createTestLevel,
   createTestMembershipRecord,
+  createTestMembershipRecordData,
   resetTestData,
   expectMembershipRecordResponse,
   expectListResponse,
@@ -79,6 +80,30 @@ describe('Membership Record Staff Integration Tests', () => {
       ]);
     });
 
+    it('[STAFF-R0015] should filter records by user', async () => {
+      const premiumLevel = await createTestLevel(2);
+      const targetUserId = uuid();
+      const otherUserId = uuid();
+
+      // Create records for target user
+      const record1 = await createTestMembershipRecord(targetUserId, defaultLevel.id);
+      const record2 = await createTestMembershipRecord(targetUserId, premiumLevel.id);
+
+      // Create records for other user
+      await createTestMembershipRecord(otherUserId, defaultLevel.id);
+      await createTestMembershipRecord(otherUserId, premiumLevel.id);
+
+      const response = await expect200(() => app).get(
+        `${url}?userId=${targetUserId}`,
+        staffUser.token,
+      );
+
+      expectListResponse(response, 2, [
+        { id: record1.id, userId: targetUserId, membershipLevelId: defaultLevel.id },
+        { id: record2.id, userId: targetUserId, membershipLevelId: premiumLevel.id },
+      ]);
+    });
+
     it('[STAFF-R0020] should require staff auth', async () => {
       await expect401(() => app).get(url, normalUser.token);
     });
@@ -92,48 +117,39 @@ describe('Membership Record Staff Integration Tests', () => {
       const startAtUtc = new Date('2024-01-01T00:00:00Z');
       const endBeforeUtc = new Date('2025-01-01T00:00:00Z');
 
+      const recordData = createTestMembershipRecordData(
+        userId,
+        defaultLevel.id,
+        startAtUtc,
+        endBeforeUtc,
+      );
+
       const response = await expect200(() => app).post(
         url,
-        {
-          userId,
-          membershipLevelId: defaultLevel.id,
-          startAtUtc,
-          endBeforeUtc,
-        },
+        recordData,
         staffUser.token,
       );
 
-      const data = expectResponseData(response, {
-        userId,
-        membershipLevelId: defaultLevel.id,
-        startAtUtc: startAtUtc.toISOString(),
-        endBeforeUtc: endBeforeUtc.toISOString(),
-      });
+      const data = expectResponseData(response, recordData);
       expectMembershipRecordResponse(data);
     });
 
     it('[STAFF-R0040] should require staff auth', async () => {
+      const recordData = createTestMembershipRecordData(uuid(), defaultLevel.id);
+
       await expect401(() => app).post(
         url,
-        {
-          userId: uuid(),
-          membershipLevelId: defaultLevel.id,
-          startAtUtc: new Date(),
-          endBeforeUtc: new Date('9999-12-31T23:59:59Z'),
-        },
+        recordData,
         normalUser.token,
       );
     });
 
     it('[STAFF-R0050] should validate membership level exists', async () => {
+      const recordData = createTestMembershipRecordData(uuid(), uuid());
+
       await expect404(() => app).post(
         url,
-        {
-          userId: uuid(),
-          membershipLevelId: uuid(),
-          startAtUtc: new Date(),
-          endBeforeUtc: new Date('9999-12-31T23:59:59Z'),
-        },
+        recordData,
         staffUser.token,
       );
     });
@@ -142,14 +158,16 @@ describe('Membership Record Staff Integration Tests', () => {
       const startAtUtc = new Date('2024-01-01T00:00:00Z');
       const endBeforeUtc = new Date('2023-01-01T00:00:00Z');
 
+      const recordData = createTestMembershipRecordData(
+        uuid(),
+        defaultLevel.id,
+        startAtUtc,
+        endBeforeUtc,
+      );
+
       await expect400(() => app).post(
         url,
-        {
-          userId: uuid(),
-          membershipLevelId: defaultLevel.id,
-          startAtUtc,
-          endBeforeUtc,
-        },
+        recordData,
         staffUser.token,
       );
     });
@@ -198,45 +216,40 @@ describe('Membership Record Staff Integration Tests', () => {
       const newStartAtUtc = new Date('2024-02-01T00:00:00Z');
       const newEndBeforeUtc = new Date('2025-02-01T00:00:00Z');
 
-      const response = await expect200(() => app).patch(
-        getUrl(record.id),
-        {
-          membershipLevelId: premiumLevel.id,
-          startAtUtc: newStartAtUtc,
-          endBeforeUtc: newEndBeforeUtc,
-        },
-        staffUser.token,
-      );
-
-      const data = expectResponseData(response, {
-        id: record.id,
+      const updateData = {
         membershipLevelId: premiumLevel.id,
         startAtUtc: newStartAtUtc.toISOString(),
         endBeforeUtc: newEndBeforeUtc.toISOString(),
-      });
+      };
+
+      const response = await expect200(() => app).patch(
+        getUrl(record.id),
+        updateData,
+        staffUser.token,
+      );
+
+      const data = expectResponseData(response, updateData);
       expectMembershipRecordResponse(data);
     });
 
     it('[STAFF-R0110] should require staff auth', async () => {
       const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
+      const updateData = { startAtUtc: new Date().toISOString() };
 
       await expect401(() => app).patch(
         getUrl(record.id),
-        {
-          startAtUtc: new Date(),
-        },
+        updateData,
         normalUser.token,
       );
     });
 
     it('[STAFF-R0120] should validate membership level exists when updating', async () => {
       const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
+      const updateData = { membershipLevelId: uuid() };
 
       await expect404(() => app).patch(
         getUrl(record.id),
-        {
-          membershipLevelId: uuid(),
-        },
+        updateData,
         staffUser.token,
       );
     });
@@ -246,22 +259,26 @@ describe('Membership Record Staff Integration Tests', () => {
       const startAtUtc = new Date('2024-01-01T00:00:00Z');
       const endBeforeUtc = new Date('2023-01-01T00:00:00Z');
 
+      const updateData = createTestMembershipRecordData(
+        record.userId,
+        record.membershipLevelId,
+        startAtUtc,
+        endBeforeUtc,
+      );
+
       await expect400(() => app).patch(
         getUrl(record.id),
-        {
-          startAtUtc,
-          endBeforeUtc,
-        },
+        updateData,
         staffUser.token,
       );
     });
 
     it('[STAFF-R0140] should return 404 for non-existent record', async () => {
+      const updateData = { startAtUtc: new Date().toISOString() };
+
       await expect404(() => app).patch(
         getUrl(uuid()),
-        {
-          startAtUtc: new Date(),
-        },
+        updateData,
         staffUser.token,
       );
     });
