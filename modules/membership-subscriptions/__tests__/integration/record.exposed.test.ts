@@ -1,5 +1,4 @@
 import { Express } from 'express';
-import { v4 as uuid } from 'uuid';
 import { Containers } from '@omniflex/core';
 import { AutoServer } from '@omniflex/infra-express';
 

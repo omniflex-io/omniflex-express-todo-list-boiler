@@ -19,6 +19,7 @@ import {
   expectMembershipRecordResponse,
   expectListResponse,
   expectResponseData,
+  createTestUserProfile,
 } from '../helpers/setup';
 import { RequestHelper } from '../helpers/request';
 
@@ -201,6 +202,101 @@ describe('Membership Record Staff Integration Tests', () => {
 
     it('[STAFF-R0090] should return 404 for non-existent record', async () => {
       await expect404.get(getUrl(uuid()), staffUser.token);
+    });
+  });
+
+  describe('GET /v1/membership/records/current-memberships', () => {
+    const url = '/v1/membership/records/current-memberships';
+
+    it('[STAFF-R0150] should get current memberships for multiple users', async () => {
+      const premiumLevel = await createTestLevel(2);
+      const user1 = uuid();
+      const user2 = uuid();
+      const record1 = await createTestMembershipRecord(user1, premiumLevel.id);
+      const record2 = await createTestMembershipRecord(user2, defaultLevel.id);
+      await Promise.all([
+        createTestUserProfile(user1),
+        createTestUserProfile(user2),
+      ]);
+
+      const response = await expect200.get(
+        `${url}?userIds=${user1},${user2}`,
+        staffUser.token,
+      );
+
+      const data = expectResponseData<any[]>(response);
+      expect(data).toHaveLength(2);
+      expect(data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            userId: user1,
+            firstName: `Test ${user1.slice(0, 4)}`,
+            lastName: 'User',
+            email: `test-${user1.slice(0, 4)}@example.com`,
+            membership: expect.objectContaining({
+              userId: user1,
+              membershipLevelId: premiumLevel.id,
+              membershipRecordId: record1.id,
+            }),
+          }),
+          expect.objectContaining({
+            userId: user2,
+            firstName: `Test ${user2.slice(0, 4)}`,
+            lastName: 'User',
+            email: `test-${user2.slice(0, 4)}@example.com`,
+            membership: expect.objectContaining({
+              userId: user2,
+              membershipLevelId: defaultLevel.id,
+              membershipRecordId: record2.id,
+            }),
+          }),
+        ]),
+      );
+    });
+
+    it('[STAFF-R0160] should return empty array for no user IDs', async () => {
+      const response = await expect200.get(
+        `${url}?userIds=`,
+        staffUser.token,
+      );
+
+      expectListResponse(response, 0, []);
+    });
+
+    it('[STAFF-R0170] should support pagination', async () => {
+      const users = Array.from({ length: 3 }, () => uuid());
+
+      // Create users in sequence to ensure consistent order
+      for (const userId of users) {
+        await createTestUserProfile(userId);
+        await createTestMembershipRecord(userId, defaultLevel.id);
+      }
+
+      const response = await expect200.get(
+        `${url}?userIds=${users.join(',')}&page=2&pageSize=1`,
+        staffUser.token,
+      );
+
+      const data = expectResponseData<any[]>(response);
+      expect(data).toHaveLength(1);
+      expect(response.body.total).toBe(3);
+      expect(data[0]).toMatchObject({
+        userId: users[1],
+        firstName: `Test ${users[1].slice(0, 4)}`,
+        lastName: 'User',
+        email: `test-${users[1].slice(0, 4)}@example.com`,
+        membership: {
+          userId: users[1],
+          membershipLevelId: defaultLevel.id,
+        },
+      });
+    });
+
+    it('[STAFF-R0180] should require staff auth', async () => {
+      await expect401.get(
+        `${url}?userIds=${uuid()}`,
+        normalUser.token,
+      );
     });
   });
 

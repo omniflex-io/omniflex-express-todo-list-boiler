@@ -17,7 +17,6 @@ initializeAppContainer({
 // -- initialize the identity module schemas
 const initializeIdentity = async () => {
   const sequelize = await import('@omniflex/module-identity-sequelize-v6');
-
   sequelize.createRegisteredRepositories();
 };
 

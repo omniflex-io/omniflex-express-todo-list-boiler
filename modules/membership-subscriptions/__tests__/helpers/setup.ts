@@ -1,6 +1,7 @@
 import { v4 as uuid } from 'uuid';
 import { jwtProvider } from '@/utils/jwt';
 import { membershipLevels, membershipRecords, currentMemberships } from '../../membership.repo';
+import { resolve } from '@omniflex/module-identity-core';
 
 export const createTestUser = async (type: 'staff' | 'exposed' | 'developer') => {
   const userId = uuid();
@@ -149,4 +150,23 @@ export const expectMembershipRecordResponse = (data: any): void => {
   expect(data).toHaveProperty('endBeforeUtc');
   expect(data).toHaveProperty('createdAt');
   expect(data).toHaveProperty('updatedAt');
+};
+
+export const createTestUserProfile = async (userId: string) => {
+  const { users, profiles } = resolve();
+
+  // Create user first
+  await users.create({
+    id: userId,
+    identifier: `test-${userId.slice(0, 4)}`,
+    isVerified: true,
+  });
+
+  // Then create profile
+  return profiles.create({
+    userId,
+    firstName: `Test ${userId.slice(0, 4)}`,
+    lastName: 'User',
+    email: `test-${userId.slice(0, 4)}@example.com`,
+  });
 };

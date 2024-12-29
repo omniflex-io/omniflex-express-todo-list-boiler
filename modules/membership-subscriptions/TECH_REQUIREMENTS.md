@@ -56,6 +56,7 @@ interface TCurrentMembership {
   - POST /staff/membership-records - Create membership record
   - PATCH /staff/membership-records/:id - Update membership record
   - GET /staff/current-memberships - List current memberships
+  - GET /staff/records/current-memberships - Get current memberships with user profiles for multiple users (accepts comma-separated user IDs)
 - Developer endpoints:
   - POST /developer/current-memberships/scan - Scan and update current memberships
 - Exposed endpoints:
@@ -90,6 +91,12 @@ interface TCurrentMembership {
 // Success collection
 {
   data: TEntity[]
+  total: number
+}
+
+// Current memberships with user profiles response
+{
+  data: Array<TUserProfile & { membership: TCurrentMembership }>
   total: number
 }
 

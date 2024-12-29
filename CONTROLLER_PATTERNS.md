@@ -286,8 +286,77 @@ class ResourceController extends BaseEntitiesController {
     const extra = await this.getExtraData(entity);
     this.respondOne({ ...entity, ...extra });
   }
+
+  // 5. Pagination operations
+  tryListWithPagination() {
+    return this.tryAction(async () => {
+      // Access built-in pagination helpers
+      const options = {
+        page: this.page,      // defaults to 1 if not specified or invalid
+        pageSize: this.pageSize, // defaults to 10 if not specified or invalid
+      };
+
+      const result = await someService.getItems(options);
+      return this.respondMany(result.data, result.total);
+    });
+  }
 }
 ```
+
+### Pagination Helpers
+
+The base controller provides built-in pagination helpers:
+
+1. **page**: Gets the validated page number
+   - Returns number from query parameter `page`
+   - Defaults to 1 if not specified or invalid
+   - Must be a positive number
+
+2. **pageSize**: Gets the validated page size
+   - Returns number from query parameter `pageSize`
+   - Defaults to 10 if not specified or invalid
+   - Must be a positive number
+
+Example usage with repository operations:
+```typescript
+// Simple pagination with repository
+tryList() {
+  return super.tryListPaginated();  // Uses page and pageSize automatically
+}
+
+// Custom pagination with service
+tryCustomList() {
+  return this.tryAction(async () => {
+    const result = await customService.getItems({
+      page: this.page,
+      pageSize: this.pageSize,
+    });
+    return this.respondMany(result.data, result.total);
+  });
+}
+```
+
+### Why Use Pagination Helpers?
+
+1. **Consistent Behavior**
+   - Same pagination logic across all endpoints
+   - Standard parameter names and defaults
+   - Built-in validation
+
+2. **Type Safety**
+   - Values are properly typed
+   - Invalid values are handled gracefully
+   - No manual type conversion needed
+
+3. **Code Reduction**
+   - No need to repeat validation logic
+   - Default values are handled automatically
+   - Less code to maintain
+
+4. **Query Parameter Handling**
+   - Automatic parsing of query parameters
+   - Validation of numeric values
+   - Fallback to default values
 
 ### Why This Pattern?
 

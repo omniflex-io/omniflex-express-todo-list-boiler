@@ -47,6 +47,16 @@
 - Default membership has the lowest rank (0)
 - membership's rank increments by 10 for each level
 
+### Get Multiple Users' Current Memberships with Profiles (Staff Only)
+- Staff can retrieve current memberships and profiles for multiple users at once
+- Accepts a list of user IDs
+- Returns both user profile and membership information for each user
+- Supports optional pagination:
+  1. Returns full list when pagination options are not provided
+  2. Returns paginated results when page and pageSize are specified
+- Only returns data for users that have both profile and membership
+- Maintains data privacy by requiring staff authorization
+
 ### Create Membership Record (Staff Only)
 - Staff creates a new membership record for a user
 - System validates the membership level exists

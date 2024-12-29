@@ -1,7 +1,9 @@
 import config from '@/config';
 import { Sequelize } from 'sequelize';
 import { Containers } from '@omniflex/core';
+import * as ModuleIdentity from '@omniflex/module-identity-sequelize-v6';
 
+// Initialize containers
 Containers.asValues({
   config,
   sequelize: new Sequelize({
@@ -10,6 +12,8 @@ Containers.asValues({
     logging: false,
   }),
 });
+
+ModuleIdentity.createRegisteredRepositories();
 
 jest.mock('@/config', () => ({
   env: 'test',
