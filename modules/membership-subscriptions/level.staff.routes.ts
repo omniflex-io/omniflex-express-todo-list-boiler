@@ -1,6 +1,5 @@
-// #swagger.tags = ['Membership']
-// #swagger.description = 'Staff endpoints for managing membership levels'
-// #swagger.basePath = '/v1/membership'
+// #swagger.file.tags = ['Membership']
+// #swagger.file.basePath = '/v1/membership'
 
 import { auth } from '@/middlewares/auth';
 import { StaffRouter } from '@/servers';
