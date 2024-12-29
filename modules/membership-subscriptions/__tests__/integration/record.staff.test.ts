@@ -265,7 +265,7 @@ describe('Membership Record Staff Integration Tests', () => {
 
     it('[STAFF-R0170] should support pagination', async () => {
       const users = Array.from({ length: 3 }, () => uuid()).sort();
-      
+
       // Create users in sequence to ensure consistent order
       for (const userId of users) {
         await createTestUserProfile(userId);

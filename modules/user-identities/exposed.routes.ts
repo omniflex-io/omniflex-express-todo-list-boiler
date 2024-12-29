@@ -22,6 +22,8 @@ import {
   validateRegisterWithEmail,
 } from '@omniflex/module-identity-express';
 
+import { requireProfileWithMembership } from './middlewares/access';
+
 class Controller extends UsersController {
   static create = getControllerCreator(Controller);
 
@@ -57,6 +59,10 @@ class Controller extends UsersController {
     });
   }
 
+  tryGetProfileWithMembership() {
+    return this.tryAction(() => this.respondRequired('profileWithMembership'));
+  }
+
   private async _getAccessToken(user: TUser) {
     const expiresIn = config.jwt.expiresIn;
     const expiredInMs = typeof expiresIn === 'string' ?
@@ -88,4 +94,10 @@ router
     // #swagger.jsonBody = required|components/schemas/moduleIdentity/loginWithEmail
     validateLoginWithEmail,
     Controller.create(controller => controller.tryLoginWithEmail()),
+  )
+
+  .get('/users/me', // #swagger.summary = 'Get current user profile with membership'
+    // #swagger.security = [{ "bearerAuth": [] }]
+    requireProfileWithMembership,
+    Controller.create(controller => controller.tryGetProfileWithMembership()),
   );
