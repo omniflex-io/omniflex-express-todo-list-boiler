@@ -61,7 +61,6 @@ interface TCurrentMembership {
 - Exposed endpoints:
   - GET /membership-records/my - List user's membership records
   - GET /membership-records/my/current - Get user's current membership
-  - GET /users/:userId/current-membership - Get any user's current membership (creates default if none exists)
 
 ### Default Membership Handling
 - System maintains one default membership level (rank 0)
@@ -107,7 +106,7 @@ interface TCurrentMembership {
 ### Access Control
 - Validate JWT for all endpoints
 - Access levels are strictly enforced:
-  - Staff: Full access to all records
+  - Staff: Full access to all records and ability to view any user's membership status
   - Developer: Access to system operations
   - User: Access to own records only
 - Staff-specific operations:

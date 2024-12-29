@@ -119,47 +119,4 @@ describe('Membership Record Exposed Integration Tests', () => {
       await expect401.get(url);
     });
   });
-
-  describe('GET /v1/membership/users/:userId/current-membership', () => {
-    const getUrl = (userId: string) => `/v1/membership/users/${userId}/current-membership`;
-
-    it('[EXPOSED-R0060] should get any user current membership', async () => {
-      const premiumLevel = await createTestLevel(2);
-      const record = await createTestMembershipRecord(otherUser.id, premiumLevel.id);
-
-      const response = await expect200.get(
-        getUrl(otherUser.id),
-        exposedUser.token,
-      );
-
-      const data = expectResponseData(response, {
-        userId: otherUser.id,
-        membershipLevelId: premiumLevel.id,
-        membershipRecordId: record.id,
-      });
-      expect(data.membershipLevel).toBeDefined();
-      expect(data.membershipRecord).toBeDefined();
-    });
-
-    it('[EXPOSED-R0070] should create default membership if none exists', async () => {
-      const targetUserId = uuid();
-
-      const response = await expect200.get(
-        getUrl(targetUserId),
-        exposedUser.token,
-      );
-
-      const data = expectResponseData(response, {
-        userId: targetUserId,
-        membershipLevelId: defaultLevel.id,
-      });
-      expect(data.membershipLevel).toBeDefined();
-      expect(data.membershipRecord).toBeDefined();
-      expect(data.membershipLevel.isDefault).toBe(true);
-    });
-
-    it('[EXPOSED-R0080] should require authentication', async () => {
-      await expect401.get(getUrl(uuid()));
-    });
-  });
 });

@@ -8,6 +8,7 @@
 - Staff endpoints must only be accessible by staff users
 - Developer endpoints must only be accessible by developer users
 - No endpoint should reveal the existence of memberships to unauthorized users
+- Access to other users' membership information is strictly limited to staff endpoints only
 
 ### Access Control Principles
 - Authentication is required for all operations

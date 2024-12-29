@@ -61,12 +61,3 @@ router.get('/records/my/current',
   // #swagger.security = [{"bearerAuth": []}]
   auth.requireExposed,
   CurrentMembershipController.create(controller => controller.tryGetMyCurrent()));
-
-router.get('/users/:userId/current-membership',
-  // #swagger.summary = 'Get any user current membership'
-  // #swagger.security = [{"bearerAuth": []}]
-  // #swagger.parameters['userId'] = { description: 'UUID of the user' }
-  auth.requireExposed,
-  CurrentMembershipController.create(controller => controller.tryGetUserCurrent()));
-
-export default router;
