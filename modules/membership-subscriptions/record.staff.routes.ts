@@ -71,12 +71,7 @@ router
   .get('/records/current-memberships',
     // #swagger.summary = 'Get current memberships with user profiles for multiple users'
     // #swagger.security = [{ "bearerAuth": [] }]
-    // #swagger.parameters['userIds'] = {
-    //    description: 'Comma-separated list of user IDs',
-    //    type: 'string',
-    //    required: true,
-    //    example: 'user-uuid-1,user-uuid-2,user-uuid-3'
-    // }
+    // #swagger.parameters['userIds'] = { type: 'string', required: true, example: 'user-uuid-1,user-uuid-2,user-uuid-3' }
     // #swagger.parameters['page'] = { description: 'Page number (1-based)', type: 'integer' }
     // #swagger.parameters['pageSize'] = { description: 'Number of items per page', type: 'integer' }
     auth.requireStaff,
