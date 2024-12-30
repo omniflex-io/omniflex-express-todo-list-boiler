@@ -35,6 +35,64 @@ RequiredDbEntries.firstMatch(
    - No unnecessary data fetching
    - Efficient query patterns for nested resources
 
+### Primary Validation Layer
+
+Middleware should be the primary validation layer for incoming requests. Controllers should trust that requests reaching them are valid:
+
+```typescript
+// CORRECT: Complete validation chain in middleware
+export const validateResourceOperation = [
+  // 1. Schema validation
+  tryValidateBody(schema),
+
+  // 2. Resource validation
+  RequiredDbEntries.byPathId(repository, 'resource'),
+
+  // 3. Permission validation
+  RequiredDbEntries.firstMatch(
+    permissions,
+    (req, res) => ({
+      resourceId: req.params.id,
+      userId: res.locals.user.id,
+    }),
+    true,
+  ),
+];
+
+// INCORRECT: Duplicating validation in controller
+tryOperation() {
+  return this.tryAction(async () => {
+    // Don't validate again - middleware already did this
+    if (!isValid(this.req.body)) {
+      throw new Error('Invalid request');
+    }
+    return super.tryUpdate(this.req.body);
+  });
+}
+
+// CORRECT: Trust middleware validation
+tryOperation() {
+  return super.tryUpdate(this.req.body);
+}
+```
+
+### Why Trust Middleware?
+
+1. **Early Validation**
+   - Requests are validated before reaching controllers
+   - Invalid requests are rejected early
+   - Better performance and resource utilization
+
+2. **Single Source of Truth**
+   - Validation logic lives in one place
+   - No redundant checks
+   - Easier to maintain and update
+
+3. **Clear Responsibility**
+   - Middleware handles validation
+   - Controllers handle business logic
+   - Services handle data operations
+
 ### Resource Existence Check Patterns
 
 1. **Using byPathId (Simple Cases)**

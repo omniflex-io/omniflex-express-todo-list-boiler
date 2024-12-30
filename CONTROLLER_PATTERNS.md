@@ -151,6 +151,41 @@ tryComplexUpdate() {
 }
 ```
 
+### Avoiding Redundant Validation
+
+The base controller and database layer already handle validation and error cases. Do NOT add redundant validation in controllers:
+
+```typescript
+// INCORRECT: Redundant validation
+tryCreate() {
+  return super.tryCreate(
+    this.req.body,
+    {
+      respondOne: async (record) => {
+        if (!record) {
+          throw new Error('Failed to create record'); // Redundant - base controller handles this
+        }
+        await this.performAdditionalTasks(record);
+        this.respondOne(record);
+      },
+    },
+  );
+}
+
+// CORRECT: Trust base controller and database validation
+tryCreate() {
+  return super.tryCreate(
+    this.req.body,
+    {
+      respondOne: async (record) => {
+        await this.performAdditionalTasks(record);
+        this.respondOne(record);
+      },
+    },
+  );
+}
+```
+
 ### Why These Patterns?
 
 1. **Response Control**
@@ -162,6 +197,11 @@ tryComplexUpdate() {
    - Clear operation flow
    - Easy to extend
    - Simple to debug
+
+3. **Trust Infrastructure**
+   - Base controller handles common validations
+   - Database layer handles data integrity
+   - Middleware handles request validation
 
 ## Error Handling Pattern
 
