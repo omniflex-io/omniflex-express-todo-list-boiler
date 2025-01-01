@@ -145,21 +145,23 @@ describe('Membership Record Staff Integration Tests', () => {
     it('[STAFF-R0035] should update current membership when creating a new record', async () => {
       const userId = uuid();
       const premiumLevel = await createTestLevel(2);
+      const now = new Date();
+      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
       // Create an old record with higher rank
       const oldRecord = await createTestMembershipRecord(
         userId,
         premiumLevel.id,
-        new Date('2023-01-01T00:00:00Z'),
-        new Date('2023-12-31T23:59:59Z'),
+        now,
+        oneYearLater,
       );
 
       // Create a new record with lower rank
       const newRecordData = createTestMembershipRecordData(
         userId,
         defaultLevel.id,
-        new Date('2024-01-01T00:00:00Z'),
-        new Date('2024-12-31T23:59:59Z'),
+        now,
+        oneYearLater,
       );
 
       const response = await expect200.post(
@@ -349,12 +351,14 @@ describe('Membership Record Staff Integration Tests', () => {
     it('[STAFF-R0100] should update membership record', async () => {
       const userId = uuid();
       const premiumLevel = await createTestLevel(2);
+      const now = new Date();
+      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
       const record = await createTestMembershipRecord(userId, defaultLevel.id);
 
       const updateData = {
         membershipLevelId: premiumLevel.id,
-        startAtUtc: new Date('2024-02-01T00:00:00Z').toISOString(),
-        endBeforeUtc: new Date('2024-12-31T23:59:59Z').toISOString(),
+        startAtUtc: now.toISOString(),
+        endBeforeUtc: oneYearLater.toISOString(),
       };
 
       const response = await expect200.patch(
@@ -371,20 +375,22 @@ describe('Membership Record Staff Integration Tests', () => {
     it('[STAFF-R0105] should update current membership when updating a record', async () => {
       const userId = uuid();
       const premiumLevel = await createTestLevel(2);
+      const now = new Date();
+      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
       // Create two records
       const oldRecord = await createTestMembershipRecord(
         userId,
         defaultLevel.id,
-        new Date('2024-01-01T00:00:00Z'),
-        new Date('2024-12-31T23:59:59Z'),
+        now,
+        oneYearLater,
       );
 
       const currentRecord = await createTestMembershipRecord(
         userId,
         premiumLevel.id,
-        new Date('2025-01-01T00:00:00Z'),
-        new Date('2025-12-31T23:59:59Z'),
+        now,
+        oneYearLater,
       );
 
       // Update the old record to overlap with current record
