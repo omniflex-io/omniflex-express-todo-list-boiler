@@ -78,7 +78,9 @@ interface TCurrentMembership {
   - Cannot be deleted or archived
 - Current membership mapping:
   - Created automatically with default membership if none exists
-  - Updated during membership scan
+  - Updated after any record creation or update
+  - When multiple valid records exist for a user, use the one with highest rank
+  - Membership scan process follows the same logic
   - Always returns a valid membership
 
 ### Response Format

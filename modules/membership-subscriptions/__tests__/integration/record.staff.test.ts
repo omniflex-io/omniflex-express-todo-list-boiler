@@ -142,18 +142,18 @@ describe('Membership Record Staff Integration Tests', () => {
       const userId = uuid();
       const premiumLevel = await createTestLevel(2);
 
-      // Create an old record
+      // Create an old record with higher rank
       const oldRecord = await createTestMembershipRecord(
         userId,
-        defaultLevel.id,
+        premiumLevel.id,
         new Date('2023-01-01T00:00:00Z'),
         new Date('2023-12-31T23:59:59Z'),
       );
 
-      // Create a new record
+      // Create a new record with lower rank
       const newRecordData = createTestMembershipRecordData(
         userId,
-        premiumLevel.id,
+        defaultLevel.id,
         new Date('2024-01-01T00:00:00Z'),
         new Date('2024-12-31T23:59:59Z'),
       );
@@ -167,14 +167,14 @@ describe('Membership Record Staff Integration Tests', () => {
       const data = expectResponseData(response, newRecordData);
       expectMembershipRecordResponse(data);
 
-      // Verify the current membership is pointing to the new record
+      // Verify the current membership is still pointing to the old record with higher rank
       const currentMembership = await currentMemberships.findOne({ userId });
-      expect(currentMembership?.membershipRecordId).toBe(data.id);
+      expect(currentMembership?.membershipRecordId).toBe(oldRecord.id);
       expect(currentMembership?.membershipLevelId).toBe(premiumLevel.id);
 
-      // Verify old record still exists
-      const updatedOldRecord = await membershipRecords.findById(oldRecord.id);
-      expect(updatedOldRecord).toBeTruthy();
+      // Verify new record exists
+      const newRecord = await membershipRecords.findById(data.id);
+      expect(newRecord).toBeTruthy();
     });
 
     it('[STAFF-R0040] should require staff auth', async () => {

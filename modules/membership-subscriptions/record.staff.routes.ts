@@ -60,7 +60,7 @@ class MembershipRecordController extends BaseEntitiesController<TMembershipRecor
       this.req.body,
       {
         respondOne: async (record) => {
-          await membershipService.checkAndUpdateCurrentMembership(record.userId, record.id);
+          await membershipService.refreshCurrentMembership(record.userId);
           this.respondOne(record);
         },
       },
@@ -72,7 +72,7 @@ class MembershipRecordController extends BaseEntitiesController<TMembershipRecor
       this.req.body,
       {
         respondOne: async (record) => {
-          await membershipService.checkAndUpdateCurrentMembership(record.userId, record.id);
+          await membershipService.refreshCurrentMembership(record.userId);
           this.respondOne(record);
         },
       },

@@ -111,29 +111,47 @@ export class MembershipService {
     return { data, total };
   }
 
-  async checkAndUpdateCurrentMembership(userId: string, membershipRecordId: string) {
-    const [record, current] = await Promise.all([
-      membershipRecords.findById(membershipRecordId),
+  async refreshCurrentMembership(userId: string) {
+    const [records, current] = await Promise.all([
+      membershipRecords.find({
+        userId,
+        deletedAt: null,
+      }, {
+        sort: { startAtUtc: 'desc' },
+      }),
       this.getCurrentMembership(userId),
     ]);
 
-    if (!record || !current) return;
+    if (!records.length || !current) return;
 
     const now = new Date();
-    const isRecordActive = now >= record.startAtUtc && now < record.endBeforeUtc;
-    if (!isRecordActive) return;
+    const activeRecords = records.filter(record =>
+      now >= record.startAtUtc && now < record.endBeforeUtc
+    );
 
-    const [recordLevel, currentLevel] = await Promise.all([
-      membershipLevels.findById(record.membershipLevelId),
+    if (!activeRecords.length) return;
+
+    const [recordLevels, currentLevel] = await Promise.all([
+      Promise.all(activeRecords.map(record =>
+        membershipLevels.findById(record.membershipLevelId)
+      )),
       membershipLevels.findById(current.membershipLevelId),
     ]);
 
-    if (!recordLevel || !currentLevel) return;
+    if (!currentLevel) return;
 
-    if (recordLevel.rank > currentLevel.rank) {
+    const highestRankRecord = activeRecords.reduce((highest, record, index) => {
+      const level = recordLevels[index];
+      if (!level || !highest.level || level.rank > highest.level.rank) {
+        return { record, level };
+      }
+      return highest;
+    }, { record: null as typeof activeRecords[0] | null, level: null as Awaited<ReturnType<typeof membershipLevels.findById>> });
+
+    if (highestRankRecord.record && highestRankRecord.level) {
       await currentMemberships.updateById(current.id, {
-        membershipLevelId: recordLevel.id,
-        membershipRecordId: record.id,
+        membershipLevelId: highestRankRecord.record.membershipLevelId,
+        membershipRecordId: highestRankRecord.record.id,
       });
     }
   }
