@@ -56,27 +56,24 @@ class MembershipRecordController extends BaseEntitiesController<TMembershipRecor
   }
 
   tryCreate() {
-    return super.tryCreate(
-      this.req.body,
-      {
-        respondOne: async (record) => {
-          await membershipService.refreshCurrentMembership(record.userId);
-          this.respondOne(record);
-        },
-      },
-    );
+    return this._tryCreateOrUpdate(true);
   }
 
   tryUpdate() {
-    return super.tryUpdate(
-      this.req.body,
-      {
-        respondOne: async (record) => {
-          await membershipService.refreshCurrentMembership(record.userId);
-          this.respondOne(record);
-        },
-      },
-    );
+    return this._tryCreateOrUpdate();
+  }
+
+  private _tryCreateOrUpdate(create = false) {
+    const respondOne = async (record: TMembershipRecord) => {
+      await membershipService.refreshCurrentMembership(record.userId);
+      this.respondOne(record);
+    };
+
+    if (create) {
+      return super.tryCreate(undefined, { respondOne });
+    }
+
+    return super.tryUpdate(undefined, { respondOne });
   }
 }
 

@@ -1,3 +1,4 @@
+import { errors } from '@omniflex/core';
 import { membershipLevels, membershipRecords, currentMemberships } from './membership.repo';
 import { resolve } from '@omniflex/module-identity-core';
 import { TUserProfile } from '@omniflex/module-identity-core/types';
@@ -99,7 +100,6 @@ export class MembershipService {
         const profile = profileMap.get(membership.userId);
         if (!profile || !membership) return null;
 
-        // eslint-disable-next-line unused-imports/no-unused-vars
         const { deletedAt, ...profileWithoutDeleted } = profile;
         return {
           ...profileWithoutDeleted,
@@ -122,14 +122,18 @@ export class MembershipService {
       this.getCurrentMembership(userId),
     ]);
 
-    if (!records.length || !current) return;
+    if (!records.length || !current) {
+      throw errors.notFound('No active membership records found');
+    }
 
     const now = new Date();
     const activeRecords = records.filter(record =>
       now >= record.startAtUtc && now < record.endBeforeUtc
     );
 
-    if (!activeRecords.length) return;
+    if (!activeRecords.length) {
+      throw errors.notFound('No active membership records found');
+    }
 
     const [recordLevels, currentLevel] = await Promise.all([
       Promise.all(activeRecords.map(record =>
@@ -138,21 +142,30 @@ export class MembershipService {
       membershipLevels.findById(current.membershipLevelId),
     ]);
 
-    if (!currentLevel) return;
+    if (!currentLevel) {
+      throw errors.notFound('Current membership level not found');
+    }
 
     const highestRankRecord = activeRecords.reduce((highest, record, index) => {
       const level = recordLevels[index];
-      if (!level || !highest.level || level.rank > highest.level.rank) {
+      if (!level) return highest;
+      
+      if (!highest.level || level.rank > highest.level.rank) {
         return { record, level };
       }
       return highest;
-    }, { record: null as typeof activeRecords[0] | null, level: null as Awaited<ReturnType<typeof membershipLevels.findById>> });
+    }, { 
+      record: activeRecords[0], 
+      level: recordLevels[0], 
+    });
 
-    if (highestRankRecord.record && highestRankRecord.level) {
-      await currentMemberships.updateById(current.id, {
-        membershipLevelId: highestRankRecord.record.membershipLevelId,
-        membershipRecordId: highestRankRecord.record.id,
-      });
+    if (!highestRankRecord.record || !highestRankRecord.level) {
+      throw errors.notFound('No valid membership level found');
     }
+
+    await currentMemberships.updateById(current.id, {
+      membershipLevelId: highestRankRecord.record.membershipLevelId,
+      membershipRecordId: highestRankRecord.record.id,
+    });
   }
 }

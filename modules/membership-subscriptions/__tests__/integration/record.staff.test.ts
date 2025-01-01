@@ -59,7 +59,7 @@ describe('Membership Record Staff Integration Tests', () => {
   beforeEach(async () => {
     await sequelize.sync({ force: true });
     await initializeDatabase();
-    const level = await membershipLevels.findOne({ isDefault: true });
+    const level = await membershipLevels.findOne({ isDefault: true, deletedAt: null });
     if (!level) throw new Error('Default level not found');
     defaultLevel = level;
   });
@@ -118,14 +118,16 @@ describe('Membership Record Staff Integration Tests', () => {
 
     it('[STAFF-R0030] should create a new membership record', async () => {
       const userId = uuid();
-      const startAtUtc = new Date('2024-01-01T00:00:00Z');
-      const endBeforeUtc = new Date('2025-01-01T00:00:00Z');
+      const now = new Date();
+      const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+      await membershipLevels.findOne({ id: defaultLevel.id });
 
       const recordData = createTestMembershipRecordData(
         userId,
         defaultLevel.id,
-        startAtUtc,
-        endBeforeUtc,
+        now,
+        oneYearLater,
       );
 
       const response = await expect200.post(
@@ -133,6 +135,8 @@ describe('Membership Record Staff Integration Tests', () => {
         recordData,
         staffUser.token,
       );
+
+      await membershipLevels.findOne({ id: defaultLevel.id });
 
       const data = expectResponseData(response, recordData);
       expectMembershipRecordResponse(data);
@@ -372,20 +376,20 @@ describe('Membership Record Staff Integration Tests', () => {
       const oldRecord = await createTestMembershipRecord(
         userId,
         defaultLevel.id,
-        new Date('2023-01-01T00:00:00Z'),
-        new Date('2023-12-31T23:59:59Z'),
+        new Date('2024-01-01T00:00:00Z'),
+        new Date('2024-12-31T23:59:59Z'),
       );
 
       const currentRecord = await createTestMembershipRecord(
         userId,
         premiumLevel.id,
-        new Date('2024-01-01T00:00:00Z'),
-        new Date('2024-12-31T23:59:59Z'),
+        new Date('2025-01-01T00:00:00Z'),
+        new Date('2025-12-31T23:59:59Z'),
       );
 
       // Update the old record to overlap with current record
       const updateData = {
-        endBeforeUtc: new Date('2024-06-30T23:59:59Z').toISOString(),
+        endBeforeUtc: new Date('2025-06-30T23:59:59Z').toISOString(),
       };
 
       const response = await expect200.patch(
