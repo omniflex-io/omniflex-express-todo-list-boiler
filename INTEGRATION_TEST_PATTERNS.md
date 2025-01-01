@@ -446,3 +446,90 @@ describe('Cross-Server Tests', () => {
    - Clear operation categorization
    - Simple to add new tests between existing ones
    - Consistent across all test files
+
+## Date Handling in Tests
+
+1. Using Relative Dates:
+   ```typescript
+   describe('Date-based Tests', () => {
+     it('should handle date ranges correctly', async () => {
+       const now = new Date();
+       const oneYearLater = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+       const recordData = createTestMembershipRecordData(
+         userId,
+         defaultLevel.id,
+         now,
+         oneYearLater,
+       );
+     });
+   });
+   ```
+
+2. Date Handling Best Practices:
+   - Use relative dates (e.g., `new Date()`) instead of fixed future dates
+   - Calculate future dates using milliseconds for precision
+   - Consider timezone implications in date comparisons
+   - Use ISO strings for API requests/responses
+   - Store dates as Date objects in the database
+
+3. Common Date-Related Issues:
+   - Fixed future dates in tests may fail when time passes
+   - Timezone differences can cause unexpected behavior
+   - Date string format inconsistencies between API and database
+   - Date validation logic may depend on current time
+
+4. Testing Date-Dependent Logic:
+   ```typescript
+   describe('Date Validation Tests', () => {
+     it('should validate date ranges', async () => {
+       // Bad: Using fixed dates
+       const startAt = new Date('2024-01-01');  // ❌ Will fail when time passes
+
+       // Good: Using relative dates
+       const now = new Date();
+       const futureDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);  // ✅ Always one day ahead
+     });
+   });
+   ```
+
+5. Date Format Consistency:
+   - Use ISO strings for API communication
+   - Use Date objects for database operations
+   - Use consistent timezone handling
+   - Document any date format requirements
+
+6. Mocking Dates for Testing:
+   ```typescript
+   describe('Date Mocking Tests', () => {
+     let realDate: DateConstructor;
+
+     beforeAll(() => {
+       realDate = global.Date;
+       const mockDate = new Date('2023-01-01T00:00:00Z');
+       global.Date = class extends Date {
+         constructor(date?: any) {
+           if (date) {
+             return new realDate(date);
+           }
+           return mockDate;
+         }
+       } as DateConstructor;
+     });
+
+     afterAll(() => {
+       global.Date = realDate;
+     });
+
+     it('should use mocked date for new Date()', () => {
+       const now = new Date();
+       expect(now.toISOString()).toBe('2023-01-01T00:00:00.000Z');
+     });
+   });
+   ```
+
+   Key Points:
+   - Mock dates only when necessary for deterministic testing
+   - Restore the original Date after tests
+   - Consider timezone implications when mocking dates
+   - Document when and why date mocking is used
