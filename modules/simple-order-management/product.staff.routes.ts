@@ -21,11 +21,18 @@ class ProductController extends BaseEntitiesController<TProduct> {
   tryList() {
     return this.tryAction(async () => {
       const { name } = this.req.query;
-      const filter = name ? { name: name as string } : {};
+      const options = {
+        sort: { name: 'asc' as const },
+      };
 
-      const result = await this.repository.find(filter, {
-        sort: { name: 'asc' },
-      });
+      const filter = name ? {
+        name: {
+          $regex: name as string,
+          $options: 'i',
+        },
+      } : {};
+
+      const result = await this.repository.find(filter, options);
       this.respondMany(result);
     });
   }
