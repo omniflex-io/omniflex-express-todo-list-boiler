@@ -6,7 +6,7 @@ import { AutoServer } from '@omniflex/infra-express';
 // Import route handlers
 import '../../record.staff.routes';
 import { initializeDatabase } from '../../models';
-import { membershipLevels } from '../../membership.repo';
+import { membershipLevels, membershipRecords, currentMemberships } from '../../membership.repo';
 import { TMembershipLevel } from '../../models';
 
 // Import test helpers
@@ -136,6 +136,45 @@ describe('Membership Record Staff Integration Tests', () => {
 
       const data = expectResponseData(response, recordData);
       expectMembershipRecordResponse(data);
+    });
+
+    it('[STAFF-R0035] should update current membership when creating a new record', async () => {
+      const userId = uuid();
+      const premiumLevel = await createTestLevel(2);
+
+      // Create an old record
+      const oldRecord = await createTestMembershipRecord(
+        userId,
+        defaultLevel.id,
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-12-31T23:59:59Z'),
+      );
+
+      // Create a new record
+      const newRecordData = createTestMembershipRecordData(
+        userId,
+        premiumLevel.id,
+        new Date('2024-01-01T00:00:00Z'),
+        new Date('2024-12-31T23:59:59Z'),
+      );
+
+      const response = await expect200.post(
+        url,
+        newRecordData,
+        staffUser.token,
+      );
+
+      const data = expectResponseData(response, newRecordData);
+      expectMembershipRecordResponse(data);
+
+      // Verify the current membership is pointing to the new record
+      const currentMembership = await currentMemberships.findOne({ userId });
+      expect(currentMembership?.membershipRecordId).toBe(data.id);
+      expect(currentMembership?.membershipLevelId).toBe(premiumLevel.id);
+
+      // Verify old record still exists
+      const updatedOldRecord = await membershipRecords.findById(oldRecord.id);
+      expect(updatedOldRecord).toBeTruthy();
     });
 
     it('[STAFF-R0040] should require staff auth', async () => {
@@ -304,15 +343,14 @@ describe('Membership Record Staff Integration Tests', () => {
     const getUrl = (recordId: string) => `/v1/membership/records/${recordId}`;
 
     it('[STAFF-R0100] should update membership record', async () => {
+      const userId = uuid();
       const premiumLevel = await createTestLevel(2);
-      const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
-      const newStartAtUtc = new Date('2024-02-01T00:00:00Z');
-      const newEndBeforeUtc = new Date('2025-02-01T00:00:00Z');
+      const record = await createTestMembershipRecord(userId, defaultLevel.id);
 
       const updateData = {
         membershipLevelId: premiumLevel.id,
-        startAtUtc: newStartAtUtc.toISOString(),
-        endBeforeUtc: newEndBeforeUtc.toISOString(),
+        startAtUtc: new Date('2024-02-01T00:00:00Z').toISOString(),
+        endBeforeUtc: new Date('2024-12-31T23:59:59Z').toISOString(),
       };
 
       const response = await expect200.patch(
@@ -321,47 +359,84 @@ describe('Membership Record Staff Integration Tests', () => {
         staffUser.token,
       );
 
-      const data = expectResponseData(response, updateData);
+      const { updatedAt, ...expectedData } = { ...record, ...updateData };
+      const data = expectResponseData(response, expectedData);
       expectMembershipRecordResponse(data);
     });
 
-    it('[STAFF-R0110] should require staff auth', async () => {
-      const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
-      const updateData = { startAtUtc: new Date().toISOString() };
+    it('[STAFF-R0105] should update current membership when updating a record', async () => {
+      const userId = uuid();
+      const premiumLevel = await createTestLevel(2);
 
+      // Create two records
+      const oldRecord = await createTestMembershipRecord(
+        userId,
+        defaultLevel.id,
+        new Date('2023-01-01T00:00:00Z'),
+        new Date('2023-12-31T23:59:59Z'),
+      );
+
+      const currentRecord = await createTestMembershipRecord(
+        userId,
+        premiumLevel.id,
+        new Date('2024-01-01T00:00:00Z'),
+        new Date('2024-12-31T23:59:59Z'),
+      );
+
+      // Update the old record to overlap with current record
+      const updateData = {
+        endBeforeUtc: new Date('2024-06-30T23:59:59Z').toISOString(),
+      };
+
+      const response = await expect200.patch(
+        getUrl(oldRecord.id),
+        updateData,
+        staffUser.token,
+      );
+
+      const { updatedAt, ...expectedData } = {
+        ...oldRecord,
+        endBeforeUtc: updateData.endBeforeUtc,
+      };
+      const data = expectResponseData(response, expectedData);
+      expectMembershipRecordResponse(data);
+
+      // Verify the current membership is still pointing to the current record
+      const currentMembership = await currentMemberships.findOne({ userId });
+      expect(currentMembership?.membershipRecordId).toBe(currentRecord.id);
+      expect(currentMembership?.membershipLevelId).toBe(premiumLevel.id);
+
+      // Verify old record is updated
+      const updatedOldRecord = await membershipRecords.findById(oldRecord.id);
+      expect(updatedOldRecord?.endBeforeUtc.toISOString()).toBe(updateData.endBeforeUtc);
+    });
+
+    it('[STAFF-R0110] should require staff auth', async () => {
+      const record = await createTestMembershipRecord(normalUser.id, defaultLevel.id);
       await expect401.patch(
         getUrl(record.id),
-        updateData,
+        { membershipLevelId: defaultLevel.id },
         normalUser.token,
       );
     });
 
-    it('[STAFF-R0120] should validate membership level exists when updating', async () => {
-      const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
-      const updateData = { membershipLevelId: uuid() };
-
+    it('[STAFF-R0120] should validate membership level exists', async () => {
+      const record = await createTestMembershipRecord(normalUser.id, defaultLevel.id);
       await expect404.patch(
         getUrl(record.id),
-        updateData,
+        { membershipLevelId: uuid() },
         staffUser.token,
       );
     });
 
-    it('[STAFF-R0130] should validate end date is after start date when updating', async () => {
-      const record = await createTestMembershipRecord(uuid(), defaultLevel.id);
-      const startAtUtc = new Date('2024-01-01T00:00:00Z');
-      const endBeforeUtc = new Date('2023-01-01T00:00:00Z');
-
-      const updateData = createTestMembershipRecordData(
-        record.userId,
-        record.membershipLevelId,
-        startAtUtc,
-        endBeforeUtc,
-      );
-
+    it('[STAFF-R0130] should validate end date is after start date', async () => {
+      const record = await createTestMembershipRecord(normalUser.id, defaultLevel.id);
       await expect400.patch(
         getUrl(record.id),
-        updateData,
+        {
+          startAtUtc: new Date('2024-02-01T00:00:00Z').toISOString(),
+          endBeforeUtc: new Date('2024-01-01T00:00:00Z').toISOString(),
+        },
         staffUser.token,
       );
     });

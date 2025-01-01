@@ -107,7 +107,14 @@ export const expectResponseData = <T extends Record<string, any>>(
   const data = response.body.data;
 
   if (expecting) {
-    expect(data).toMatchObject(expecting);
+    // Convert Date objects to ISO strings for comparison
+    const expectedWithISODates = Object.entries(expecting)
+      .reduce((acc, [key, value]) => {
+        acc[key] = value instanceof Date ? value.toISOString() : value;
+        return acc;
+      }, {} as Record<string, any>);
+
+    expect(data).toMatchObject(expectedWithISODates);
   }
 
   return data;
@@ -168,5 +175,16 @@ export const createTestUserProfile = async (userId: string) => {
     firstName: `Test ${userId.slice(0, 4)}`,
     lastName: 'User',
     email: `test-${userId.slice(0, 4)}@example.com`,
+  });
+};
+export const createTestCurrentMembership = async (
+  userId: string,
+  membershipLevelId: string,
+  membershipRecordId: string,
+) => {
+  return currentMemberships.create({
+    userId,
+    membershipLevelId,
+    membershipRecordId,
   });
 };
