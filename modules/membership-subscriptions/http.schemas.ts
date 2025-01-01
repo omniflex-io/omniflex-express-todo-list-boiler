@@ -21,7 +21,11 @@ export const createMembershipRecordSchema = Joi.object<Pick<TMembershipRecord, '
 export const updateMembershipRecordSchema = Joi.object<Partial<Pick<TMembershipRecord, 'membershipLevelId' | 'startAtUtc' | 'endBeforeUtc'>>>({
   membershipLevelId: Joi.string(),
   startAtUtc: Joi.date().iso(),
-  endBeforeUtc: Joi.date().iso().greater(Joi.ref('startAtUtc')),
+  endBeforeUtc: Joi.date().iso().when('startAtUtc', {
+    is: Joi.exist(),
+    then: Joi.date().iso().greater(Joi.ref('startAtUtc')),
+    otherwise: Joi.date().iso(),
+  }),
 });
 
 modulesSchemas.appModule = Object.assign(

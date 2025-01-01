@@ -45,13 +45,27 @@ export const validateUniqueMembershipRank = async (
   }
 };
 
-export const validateMembershipLevelExists = [
-  RequiredDbEntries.firstMatch(
-    membershipLevels,
-    req => ({
+export const validateMembershipLevelExists = async (
+  req: Request,
+  _: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (!req.body.membershipLevelId) {
+      return next();
+    }
+
+    const level = await membershipLevels.findOne({
       id: req.body.membershipLevelId,
       deletedAt: null,
-    }),
-    'level',
-  ),
-];
+    });
+
+    if (!level) {
+      throw errors.notFound('Membership level not found');
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};

@@ -110,4 +110,31 @@ export class MembershipService {
 
     return { data, total };
   }
+
+  async checkAndUpdateCurrentMembership(userId: string, membershipRecordId: string) {
+    const [record, current] = await Promise.all([
+      membershipRecords.findById(membershipRecordId),
+      this.getCurrentMembership(userId),
+    ]);
+
+    if (!record || !current) return;
+
+    const now = new Date();
+    const isRecordActive = now >= record.startAtUtc && now < record.endBeforeUtc;
+    if (!isRecordActive) return;
+
+    const [recordLevel, currentLevel] = await Promise.all([
+      membershipLevels.findById(record.membershipLevelId),
+      membershipLevels.findById(current.membershipLevelId),
+    ]);
+
+    if (!recordLevel || !currentLevel) return;
+
+    if (recordLevel.rank > currentLevel.rank) {
+      await currentMemberships.updateById(current.id, {
+        membershipLevelId: recordLevel.id,
+        membershipRecordId: record.id,
+      });
+    }
+  }
 }

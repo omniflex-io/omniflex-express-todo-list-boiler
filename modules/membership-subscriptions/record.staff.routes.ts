@@ -54,6 +54,30 @@ class MembershipRecordController extends BaseEntitiesController<TMembershipRecor
       return this.respondMany(result.data, result.total);
     });
   }
+
+  tryCreate() {
+    return super.tryCreate(
+      this.req.body,
+      {
+        respondOne: async (record) => {
+          await membershipService.checkAndUpdateCurrentMembership(record.userId, record.id);
+          this.respondOne(record);
+        },
+      },
+    );
+  }
+
+  tryUpdate() {
+    return super.tryUpdate(
+      this.req.body,
+      {
+        respondOne: async (record) => {
+          await membershipService.checkAndUpdateCurrentMembership(record.userId, record.id);
+          this.respondOne(record);
+        },
+      },
+    );
+  }
 }
 
 const router = StaffRouter('/v1/membership');
