@@ -159,5 +159,3 @@ router
     auth.requireExposed,
     validateListOwner,
     ListController.create(controller => controller.tryArchive()));
-
-export default router;

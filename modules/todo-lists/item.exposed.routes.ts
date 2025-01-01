@@ -132,5 +132,3 @@ router
     validateItemAccess,
     validateListNotArchived,
     ItemController.create(controller => controller.tryUncomplete()));
-
-export default router;

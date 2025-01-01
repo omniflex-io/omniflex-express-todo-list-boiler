@@ -67,5 +67,3 @@ router
     auth.requireExposed,
     validateDiscussionMemberAccess,
     DiscussionController.create(controller => controller.tryGetMessages()));
-
-export default router;
