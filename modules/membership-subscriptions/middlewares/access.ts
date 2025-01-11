@@ -7,43 +7,27 @@ import { membershipLevels, membershipRecords } from '../membership.repo';
 export const byLevelId = RequiredDbEntries.byPathId(membershipLevels, 'level', { fieldName: 'levelId' });
 export const byRecordId = RequiredDbEntries.byPathId(membershipRecords, 'record', { fieldName: 'recordId' });
 
-export const validateUniqueMembershipCode = async (
-  req: Request,
-  _: Response,
-  next: NextFunction,
-) => {
-  try {
-    const existing = await membershipLevels.findOne({
-      code: req.body.code,
-      deletedAt: null,
-    });
-    if (existing) {
-      throw errors.badRequest('Membership level code must be unique');
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
+export const validateUniqueMembershipCode = RequiredDbEntries.ensureNotExists(
+  membershipLevels,
+  (req) => ({
+    code: req.body.code,
+    deletedAt: null,
+  }),
+  {
+    existsMessage: 'Membership level code must be unique',
+  },
+);
 
-export const validateUniqueMembershipRank = async (
-  req: Request,
-  _: Response,
-  next: NextFunction,
-) => {
-  try {
-    const existing = await membershipLevels.findOne({
-      rank: req.body.rank,
-      deletedAt: null,
-    });
-    if (existing) {
-      throw errors.badRequest('Membership level rank must be unique');
-    }
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
+export const validateUniqueMembershipRank = RequiredDbEntries.ensureNotExists(
+  membershipLevels,
+  (req) => ({
+    rank: req.body.rank,
+    deletedAt: null,
+  }),
+  {
+    existsMessage: 'Membership level rank must be unique',
+  },
+);
 
 export const validateMembershipLevelExists = async (
   req: Request,

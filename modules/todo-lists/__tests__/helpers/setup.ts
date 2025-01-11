@@ -70,11 +70,11 @@ export const createTestInvitation = async (
 };
 
 export const resetTestData = async () => {
-  await messages.updateMany({}, { deletedAt: new Date() });
-  await discussions.updateMany({}, { deletedAt: new Date() });
-  await items.updateMany({}, { deletedAt: new Date() });
-  await lists.updateMany({}, { deletedAt: new Date() });
-  await invitations.updateMany({}, { deletedAt: new Date() });
+  await messages.update({}, { deletedAt: new Date() });
+  await discussions.update({}, { deletedAt: new Date() });
+  await items.update({}, { deletedAt: new Date() });
+  await lists.update({}, { deletedAt: new Date() });
+  await invitations.update({}, { deletedAt: new Date() });
 };
 
 /**

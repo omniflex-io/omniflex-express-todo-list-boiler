@@ -100,7 +100,7 @@ describe('List Management Integration Tests', () => {
 
     it('[LIST-R0020] should not list archived lists', async () => {
       const archivedList = await createTestList(testUser.id, 'Archived List');
-      await lists.updateMany(
+      await lists.update(
         { id: archivedList.id },
         { isArchived: true },
       );
@@ -178,7 +178,7 @@ describe('List Management Integration Tests', () => {
   describe('GET /v1/todo-lists/archived', () => {
     it('[LIST-R0080] should list user\'s archived lists', async () => {
       const archivedList = await createTestList(testUser.id, 'Archived List');
-      await lists.updateMany(
+      await lists.update(
         { id: archivedList.id },
         { isArchived: true },
       );
@@ -194,7 +194,7 @@ describe('List Management Integration Tests', () => {
 
     it('[LIST-R0090] should not list other users\' archived lists', async () => {
       const otherArchivedList = await createTestList(otherUser.id, 'Other User\'s Archived List');
-      await lists.updateMany(
+      await lists.update(
         { id: otherArchivedList.id },
         { isArchived: true },
       );
@@ -209,7 +209,7 @@ describe('List Management Integration Tests', () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );

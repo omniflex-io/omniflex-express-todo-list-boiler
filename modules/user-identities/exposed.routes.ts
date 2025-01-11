@@ -17,14 +17,13 @@ import {
 } from '@omniflex/module-identity-core';
 
 import {
-  UsersController,
-  validateLoginWithEmail,
-  validateRegisterWithEmail,
+  Validation,
+  Controllers,
 } from '@omniflex/module-identity-express';
 
 import { requireProfileWithMembership } from './middlewares/access';
 
-class Controller extends UsersController {
+class Controller extends Controllers.UsersController {
   static create = getControllerCreator(Controller);
 
   private get _appType() {
@@ -86,13 +85,13 @@ const router = ExposedRouter('/v1');
 router
   .post('/users',  // #swagger.summary = 'Register a new user'
     // #swagger.jsonBody = required|components/schemas/moduleIdentity/registerWithEmail
-    validateRegisterWithEmail,
+    Validation.validateRegisterWithEmail,
     Controller.create(controller => controller.tryRegister()),
   )
 
   .post('/access-tokens', // #swagger.summary = 'Login with email'
     // #swagger.jsonBody = required|components/schemas/moduleIdentity/loginWithEmail
-    validateLoginWithEmail,
+    Validation.validateLoginWithEmail,
     Controller.create(controller => controller.tryLoginWithEmail()),
   )
 

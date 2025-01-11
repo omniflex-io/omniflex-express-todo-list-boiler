@@ -82,8 +82,8 @@ export const resetTestData = async (): Promise<void> => {
   const now = new Date();
 
   // First, soft delete all records
-  await membershipRecords.updateMany({}, { deletedAt: now });
-  await membershipLevels.updateMany({}, { deletedAt: now });
+  await membershipRecords.update({}, { deletedAt: now });
+  await membershipLevels.update({}, { deletedAt: now });
 
   // Then, restore the default level if it exists
   const defaultLevel = await membershipLevels.findOne({ isDefault: true });

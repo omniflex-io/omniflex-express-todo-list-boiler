@@ -149,14 +149,14 @@ export class MembershipService {
     const highestRankRecord = activeRecords.reduce((highest, record, index) => {
       const level = recordLevels[index];
       if (!level) return highest;
-      
+
       if (!highest.level || level.rank > highest.level.rank) {
         return { record, level };
       }
       return highest;
-    }, { 
-      record: activeRecords[0], 
-      level: recordLevels[0], 
+    }, {
+      record: activeRecords[0],
+      level: recordLevels[0],
     });
 
     if (!highestRankRecord.record || !highestRankRecord.level) {

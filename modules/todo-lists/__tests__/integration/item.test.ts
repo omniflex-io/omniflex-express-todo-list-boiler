@@ -92,7 +92,7 @@ describe('Item Management Integration Tests', () => {
 
     it('[ITM-C0040] should not allow owner to add items to archived list', async () => {
       const list = await createTestList(testUser.id, 'Test List');
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -105,7 +105,7 @@ describe('Item Management Integration Tests', () => {
       const list = await createTestList(otherUser.id, 'Other User\'s List');
       const invitation = await createTestInvitation(list.id, otherUser.id, testUser.id);
       await invitations.updateById(invitation.id, { status: 'accepted' });
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -268,7 +268,7 @@ describe('Item Management Integration Tests', () => {
     it('[ITM-U0035] should not allow updating items in archived list', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -287,7 +287,7 @@ describe('Item Management Integration Tests', () => {
         approved: true,
       });
       const item = await createTestItem(list.id, 'Test Item');
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -317,7 +317,7 @@ describe('Item Management Integration Tests', () => {
     it('[ITM-U0045] should not allow completing items in archived list', async () => {
       const list = await createTestList(testUser.id, 'Test List');
       const item = await createTestItem(list.id, 'Test Item');
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -336,7 +336,7 @@ describe('Item Management Integration Tests', () => {
         approved: true,
       });
       const item = await createTestItem(list.id, 'Test Item');
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -384,7 +384,7 @@ describe('Item Management Integration Tests', () => {
         completedAt: new Date(),
         completedBy: testUser.id,
       });
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );
@@ -408,7 +408,7 @@ describe('Item Management Integration Tests', () => {
         completedAt: new Date(),
         completedBy: otherUser.id,
       });
-      await lists.updateMany(
+      await lists.update(
         { id: list.id },
         { isArchived: true },
       );

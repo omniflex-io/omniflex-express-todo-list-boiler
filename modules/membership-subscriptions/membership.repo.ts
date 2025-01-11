@@ -1,5 +1,5 @@
 import { SequelizeRepository } from '@omniflex/infra-sequelize-v6';
-import { TDeepPartial, TQueryOptions } from '@omniflex/core/types/repository';
+import { TQueryFilter, TQueryOptions } from '@omniflex/core/types/repository';
 
 import {
   MembershipLevelModel,
@@ -15,7 +15,7 @@ export class MembershipLevelRepository extends SequelizeRepository<TMembershipLe
     super(MembershipLevelModel);
   }
 
-  async findOne(filter: TDeepPartial<TMembershipLevel>, options?: TQueryOptions<TMembershipLevel>): Promise<TMembershipLevel | null> {
+  async findOne(filter: TQueryFilter<TMembershipLevel>, options?: TQueryOptions<TMembershipLevel>): Promise<TMembershipLevel | null> {
     const result = await MembershipLevelModel.findOne({
       where: filter,
       ...options,
@@ -29,7 +29,7 @@ export class MembershipRecordRepository extends SequelizeRepository<TMembershipR
     super(MembershipRecordModel);
   }
 
-  async findAll(filter: TDeepPartial<TMembershipRecord>, options?: TQueryOptions<TMembershipRecord>): Promise<TMembershipRecord[]> {
+  async findAll(filter: TQueryFilter<TMembershipRecord>, options?: TQueryOptions<TMembershipRecord>): Promise<TMembershipRecord[]> {
     const result = await MembershipRecordModel.findAll({
       where: filter,
       ...options,
@@ -47,7 +47,7 @@ export class CurrentMembershipRepository extends SequelizeRepository<TCurrentMem
     super(CurrentMembershipModel);
   }
 
-  async findAll(filter: TDeepPartial<TCurrentMembership>, options?: TQueryOptions<TCurrentMembership>): Promise<TCurrentMembership[]> {
+  async findAll(filter: TQueryFilter<TCurrentMembership>, options?: TQueryOptions<TCurrentMembership>): Promise<TCurrentMembership[]> {
     const result = await CurrentMembershipModel.findAll({
       where: filter,
       ...options,
@@ -62,7 +62,7 @@ export class CurrentMembershipRepository extends SequelizeRepository<TCurrentMem
     return result.map(record => record.toJSON() as TCurrentMembership);
   }
 
-  async findOne(filter: TDeepPartial<TCurrentMembership>, options?: TQueryOptions<TCurrentMembership>): Promise<TCurrentMembership | null> {
+  async findOne(filter: TQueryFilter<TCurrentMembership>, options?: TQueryOptions<TCurrentMembership>): Promise<TCurrentMembership | null> {
     const result = await CurrentMembershipModel.findOne({
       where: filter,
       ...options,

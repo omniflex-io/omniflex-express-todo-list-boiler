@@ -1,5 +1,21 @@
 # Integration Test Patterns
 
+## Overview
+
+This document provides specific patterns and examples for integration testing in the server application. It builds upon the core testing principles defined in `docs/TEST_PATTERNS.md`, providing concrete implementations and examples specific to our application stack.
+
+## Document Scope
+
+This document focuses on:
+- Application-specific integration testing patterns
+- Concrete Jest configuration and usage
+- Database testing patterns (Sequelize, Mongoose)
+- Express server testing
+- Container and dependency mocking
+- Practical examples using our tech stack
+
+For core testing principles and monorepo-wide patterns, please refer to `docs/TEST_PATTERNS.md`.
+
 ## Important Jest Behaviors
 
 Jest Execution Flow:
