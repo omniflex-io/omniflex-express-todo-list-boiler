@@ -22,19 +22,15 @@ export class MembershipService {
   }
 
   async listUserMemberships(userId: string) {
-    const records = await membershipRecords.findAll({
-      userId,
-      deletedAt: null,
-    });
+    const records = await membershipRecords
+      .findAll({ userId });
 
     return { data: records, total: records.length };
   }
 
   async getOrCreateDefaultMembership(userId: string) {
-    const defaultLevel = await membershipLevels.findOne({
-      isDefault: true,
-      deletedAt: null,
-    });
+    const defaultLevel = await membershipLevels
+      .findOne({ isDefault: true });
 
     if (!defaultLevel) {
       throw new Error('Default membership level not found');
@@ -60,10 +56,8 @@ export class MembershipService {
   }
 
   async getCurrentMembership(userId: string) {
-    const current = await currentMemberships.findOne({
-      userId,
-      deletedAt: null,
-    });
+    const current = await currentMemberships
+      .findOne({ userId });
 
     if (!current) {
       return this.getOrCreateDefaultMembership(userId);
@@ -74,24 +68,18 @@ export class MembershipService {
 
   async getCurrentMemberships(userIds: string[], options?: PaginationOptions) {
     const [memberships, profiles, total] = await Promise.all([
-      currentMemberships.find({
-        userId: { $in: userIds },
-        deletedAt: null,
-      }, {
-        ...(options && {
-          skip: ((options.page || 1) - 1) * (options.pageSize || 10),
-          take: options.pageSize || 10,
-        }),
-        sort: { userId: 'asc' },
-      }),
-      this.userProfiles.find({
-        userId: { $in: userIds },
-        deletedAt: null,
-      }),
-      currentMemberships.count({
-        userId: { $in: userIds },
-        deletedAt: null,
-      }),
+      currentMemberships.find(
+        { userId: { $in: userIds } },
+        {
+          ...(options && {
+            take: options.pageSize || 10,
+            skip: ((options.page || 1) - 1) * (options.pageSize || 10),
+          }),
+          sort: { userId: 'asc' },
+        }
+      ),
+      this.userProfiles.find({ userId: { $in: userIds } }),
+      currentMemberships.count({ userId: { $in: userIds } }),
     ]);
 
     const profileMap = new Map(profiles.map(profile => [profile.userId, profile]));
@@ -113,12 +101,11 @@ export class MembershipService {
 
   async refreshCurrentMembership(userId: string) {
     const [records, current] = await Promise.all([
-      membershipRecords.find({
-        userId,
-        deletedAt: null,
-      }, {
-        sort: { startAtUtc: 'desc' },
-      }),
+      membershipRecords
+        .find(
+          { userId },
+          { sort: { startAtUtc: 'desc' } },
+        ),
       this.getCurrentMembership(userId),
     ]);
 
