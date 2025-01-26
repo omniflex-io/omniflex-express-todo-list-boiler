@@ -1,17 +1,17 @@
 import { errors } from '@omniflex/core';
 import { membershipLevels, membershipRecords, currentMemberships } from './membership.repo';
 import { resolve } from '@omniflex/module-identity-core';
-import { TUserProfile } from '@omniflex/module-identity-core/types';
-import { IUserProfileRepository } from '@omniflex/module-identity-core/types';
+import { TUserProfile, IUserProfileRepository } from '@omniflex/module-identity-core/types';
+import { TCurrentMembership } from './models';
+
+type TUserProfileWithMembership = Omit<TUserProfile, 'deletedAt'> & {
+  membership: TCurrentMembership;
+};
 
 interface PaginationOptions {
   page?: number;
   pageSize?: number;
 }
-
-type TUserProfileWithMembership = Omit<TUserProfile, 'deletedAt'> & {
-  membership: NonNullable<Awaited<ReturnType<typeof currentMemberships.findOne>>>;
-};
 
 export class MembershipService {
   private readonly userProfiles: IUserProfileRepository;
@@ -85,7 +85,7 @@ export class MembershipService {
     const profileMap = new Map(profiles.map(profile => [profile.userId, profile]));
     const data = memberships
       .map(membership => {
-        const profile = profileMap.get(membership.userId);
+        const profile = profileMap.get(membership.userId) as TUserProfile | undefined;
         if (!profile || !membership) return null;
 
         const { deletedAt, ...profileWithoutDeleted } = profile;
